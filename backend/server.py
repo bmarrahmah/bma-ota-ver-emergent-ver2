@@ -368,6 +368,146 @@ async def donation_trend(months: int = 12, user=Depends(get_current_user)):
     ]
 
 
+@api.get("/reports/pdf-summary")
+async def report_pdf_summary(month: str, user=Depends(get_current_user)):
+    guardians = await db.guardians.find().sort("name", 1).to_list(2000)
+    reports = await db.reports.find({"month": month}).to_list(2000)
+    donations = await db.donations.find({"donation_month": month}).to_list(2000)
+    rels = await db.relations.find().to_list(5000)
+    settings = await db.settings.find_one({"id": "main"}) or {}
+
+    by_gid_report = {r["guardian_id"]: r for r in reports}
+    by_gid_donation = {}
+    for d in donations:
+        by_gid_donation.setdefault(d["guardian_id"], 0)
+        by_gid_donation[d["guardian_id"]] += d.get("amount", 0)
+    children_count = {}
+    for r in rels:
+        children_count[r["guardian_id"]] = children_count.get(r["guardian_id"], 0) + 1
+
+    names_id = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"]
+    y, m = month.split("-")
+    period_label = f"{names_id[int(m)-1]} {y}"
+
+    total_terlapor = sum(1 for r in reports if r.get("status") == "Terlapor")
+    total_donation = sum(d.get("amount", 0) for d in donations)
+    active_guardians = [g for g in guardians if g.get("status") != "Tidak Aktif"]
+    total_belum = len(active_guardians) - total_terlapor
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        leftMargin=1.6*cm, rightMargin=1.6*cm, topMargin=2*cm, bottomMargin=1.8*cm,
+        title=f"Rekap Laporan {period_label}",
+    )
+    styles = getSampleStyleSheet()
+    GREEN = colors.HexColor("#0B3D2E")
+    GOLD = colors.HexColor("#C9A227")
+    MUTED = colors.HexColor("#5C6F67")
+    BG_SOFT = colors.HexColor("#F8FAF8")
+    ROW_ALT = colors.HexColor("#FBFDFB")
+
+    h1 = ParagraphStyle("h1", parent=styles["Title"], textColor=GREEN, fontName="Helvetica-Bold", fontSize=22, leading=26, spaceAfter=4, alignment=0)
+    over = ParagraphStyle("over", parent=styles["Normal"], textColor=GOLD, fontName="Helvetica-Bold", fontSize=9, leading=12, spaceAfter=2)
+    h2 = ParagraphStyle("h2", parent=styles["Heading2"], textColor=GREEN, fontName="Helvetica-Bold", fontSize=13, leading=16, spaceBefore=14, spaceAfter=6)
+    body = ParagraphStyle("body", parent=styles["Normal"], textColor=colors.HexColor("#111E1A"), fontName="Helvetica", fontSize=10, leading=14)
+    muted = ParagraphStyle("muted", parent=styles["Normal"], textColor=MUTED, fontName="Helvetica", fontSize=9, leading=12)
+
+    def fmt_idr(n):
+        try: return f"Rp {int(n):,}".replace(",", ".")
+        except Exception: return "Rp 0"
+
+    story = []
+    story.append(Paragraph("REKAP LAPORAN BULANAN", over))
+    story.append(Paragraph(settings.get("institution_name", "Yayasan Insan Peduli Umat"), h1))
+    if settings.get("tagline"):
+        story.append(Paragraph(settings["tagline"], muted))
+    story.append(Spacer(1, 12))
+
+    info = Table([
+        [Paragraph("<b>Periode</b>", body), Paragraph(period_label, body),
+         Paragraph("<b>Tanggal Cetak</b>", body), Paragraph(datetime.now(timezone.utc).strftime("%d %B %Y"), body)],
+    ], colWidths=[2.6*cm, 5*cm, 3.4*cm, 6.4*cm])
+    info.setStyle(TableStyle([
+        ("BOX", (0,0), (-1,-1), 0.5, colors.HexColor("#E2E8E4")),
+        ("INNERGRID", (0,0), (-1,-1), 0.25, colors.HexColor("#E2E8E4")),
+        ("BACKGROUND", (0,0), (0,-1), BG_SOFT),
+        ("BACKGROUND", (2,0), (2,-1), BG_SOFT),
+        ("LEFTPADDING", (0,0), (-1,-1), 8), ("RIGHTPADDING", (0,0), (-1,-1), 8),
+        ("TOPPADDING", (0,0), (-1,-1), 6), ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+    ]))
+    story.append(info)
+
+    # Summary stats
+    story.append(Spacer(1, 10))
+    stats = Table([
+        [Paragraph("<b>Total OTA</b>", muted), Paragraph("<b>Terlapor</b>", muted),
+         Paragraph("<b>Belum Terlapor</b>", muted), Paragraph("<b>Donasi Bulan Ini</b>", muted)],
+        [Paragraph(f"<font size=16 color='#0B3D2E'><b>{len(guardians)}</b></font>", body),
+         Paragraph(f"<font size=16 color='#065F46'><b>{total_terlapor}</b></font>", body),
+         Paragraph(f"<font size=16 color='#9F1239'><b>{max(0,total_belum)}</b></font>", body),
+         Paragraph(f"<font size=14 color='#0B3D2E'><b>{fmt_idr(total_donation)}</b></font>", body)],
+    ], colWidths=[4.2*cm]*4)
+    stats.setStyle(TableStyle([
+        ("BOX", (0,0), (-1,-1), 0.5, colors.HexColor("#E2E8E4")),
+        ("LINEAFTER", (0,0), (-2,-1), 0.25, colors.HexColor("#E2E8E4")),
+        ("BACKGROUND", (0,0), (-1,0), BG_SOFT),
+        ("LEFTPADDING", (0,0), (-1,-1), 10), ("RIGHTPADDING", (0,0), (-1,-1), 10),
+        ("TOPPADDING", (0,0), (-1,-1), 8), ("BOTTOMPADDING", (0,0), (-1,-1), 8),
+    ]))
+    story.append(stats)
+
+    # Table of guardians
+    story.append(Paragraph("Daftar Orang Tua Asuh", h2))
+    header = ["No", "Nama Orang Tua Asuh", "Kontak", "Status OTA", "Anak", "Donasi", "Status Laporan"]
+    table_data = [[Paragraph(f"<b>{h}</b>", body) for h in header]]
+    for i, g in enumerate(guardians, 1):
+        gid = g["id"]
+        rep = by_gid_report.get(gid)
+        rep_status = rep.get("status") if rep else "Belum Terlapor"
+        rep_color = "#065F46" if rep_status == "Terlapor" else "#9F1239"
+        table_data.append([
+            Paragraph(str(i), body),
+            Paragraph(g["name"], body),
+            Paragraph(g.get("contact") or "-", muted),
+            Paragraph(g.get("status", "-"), muted),
+            Paragraph(str(children_count.get(gid, 0)), body),
+            Paragraph(fmt_idr(by_gid_donation.get(gid, 0)), body),
+            Paragraph(f"<font color='{rep_color}'><b>{rep_status}</b></font>", body),
+        ])
+    tbl = Table(table_data, colWidths=[0.9*cm, 4.2*cm, 3.1*cm, 2.2*cm, 1.6*cm, 2.6*cm, 3.2*cm], repeatRows=1)
+    tbl_style = [
+        ("BACKGROUND", (0,0), (-1,0), GREEN),
+        ("TEXTCOLOR", (0,0), (-1,0), colors.white),
+        ("LINEBELOW", (0,0), (-1,0), 1.5, GOLD),
+        ("BOX", (0,0), (-1,-1), 0.5, colors.HexColor("#E2E8E4")),
+        ("INNERGRID", (0,0), (-1,-1), 0.25, colors.HexColor("#EEF3EF")),
+        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+        ("LEFTPADDING", (0,0), (-1,-1), 6), ("RIGHTPADDING", (0,0), (-1,-1), 6),
+        ("TOPPADDING", (0,0), (-1,-1), 6), ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+    ]
+    for r_idx in range(1, len(table_data)):
+        if r_idx % 2 == 0:
+            tbl_style.append(("BACKGROUND", (0, r_idx), (-1, r_idx), ROW_ALT))
+    # Override header row text color for the header <b> paragraphs (they use body color); rebuild header cells as white paragraphs
+    white_header = ParagraphStyle("wh", parent=body, textColor=colors.white, fontName="Helvetica-Bold")
+    table_data[0] = [Paragraph(h, white_header) for h in header]
+    tbl = Table(table_data, colWidths=[0.9*cm, 4.2*cm, 3.1*cm, 2.2*cm, 1.6*cm, 2.6*cm, 3.2*cm], repeatRows=1)
+    tbl.setStyle(TableStyle(tbl_style))
+    story.append(tbl)
+
+    story.append(Spacer(1, 18))
+    story.append(Paragraph("Dokumen ini dihasilkan otomatis oleh Portal Orang Tua Asuh — Barakallahu fiikum.", muted))
+
+    doc.build(story)
+    buf.seek(0)
+    filename = f"Rekap_Laporan_{month}.pdf"
+    return StreamingResponse(
+        buf, media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @api.get("/reports/pdf")
 async def report_pdf(guardian_id: str, month: str, user=Depends(get_current_user)):
     g = await db.guardians.find_one({"id": guardian_id})

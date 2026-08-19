@@ -77,10 +77,32 @@ export default function LaporanPage() {
 
   return (
     <div className="space-y-6" data-testid="page-laporan">
-      <div>
-        <div className="gold-divider mb-3" />
-        <h1 className="font-display text-2xl sm:text-3xl text-[var(--pota-green)]">Laporan Bulanan</h1>
-        <p className="text-sm text-[var(--pota-text-muted)] mt-1">Pantau status laporan setiap Orang Tua Asuh untuk periode berjalan.</p>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <div className="gold-divider mb-3" />
+          <h1 className="font-display text-2xl sm:text-3xl text-[var(--pota-green)]">Laporan Bulanan</h1>
+          <p className="text-sm text-[var(--pota-text-muted)] mt-1">Pantau status laporan setiap Orang Tua Asuh untuk periode berjalan.</p>
+        </div>
+        <button
+          data-testid="btn-download-summary"
+          onClick={async () => {
+            try {
+              const t = localStorage.getItem("pota_token");
+              const res = await fetch(`${API}/reports/pdf-summary?month=${month}`, { headers: { Authorization: `Bearer ${t}` } });
+              if (!res.ok) throw new Error("Gagal mengunduh rekap");
+              const blob = await res.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url; a.download = `Rekap_Laporan_${month}.pdf`;
+              document.body.appendChild(a); a.click(); a.remove();
+              URL.revokeObjectURL(url);
+              toast.success("Rekap bulanan diunduh");
+            } catch (e) { toast.error(e.message || "Gagal mengunduh"); }
+          }}
+          className="inline-flex items-center gap-2 bg-[var(--pota-green)] hover:bg-[var(--pota-green-2)] text-white px-4 py-2.5 rounded-xl text-sm font-semibold"
+        >
+          <FileDown className="w-4 h-4" /> Unduh Rekap Bulanan
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
