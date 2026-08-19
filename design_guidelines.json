@@ -1,0 +1,261 @@
+{
+  "project_name": "Portal Orang Tua Asuh (Foster Parent Portal)",
+  "language": "id-ID",
+  "theme": {
+    "name": "Islamic Modern Luxury (Emerald & Royal Gold)",
+    "aesthetic": "Calm, dignified, trustworthy, warm, philanthropic Islamic-modern with generous whitespace and refined tactile accents. No excessive decorative patterns or cheap gradients.",
+    "color_tokens": {
+      "primary_dark_green": "#0B3D2E",
+      "primary_green_hover": "#123F32",
+      "deep_forest_green": "#164A3A",
+      "forest_surface_dark": "#07261D",
+      "accent_gold": "#C9A227",
+      "accent_gold_bright": "#D4AF37",
+      "accent_gold_muted": "#DFBA44",
+      "accent_gold_soft_bg": "#FCF7E8",
+      "accent_gold_border": "#E8D38A",
+      "bg_light_canvas": "#F8FAF8",
+      "bg_soft_card": "#FFFFFF",
+      "bg_subtle_surface": "#F2F5F3",
+      "text_main": "#111E1A",
+      "text_muted": "#5C6F67",
+      "text_light_emerald": "#235B47",
+      "border_subtle": "#E2E8E4",
+      "border_focus": "#C9A227",
+      "status_rutin_bg": "#E6F4EA",
+      "status_rutin_text": "#0F5B38",
+      "status_tidak_rutin_bg": "#FEF3C7",
+      "status_tidak_rutin_text": "#92400E",
+      "status_insidentil_bg": "#E0F2FE",
+      "status_insidentil_text": "#075985",
+      "status_tidak_aktif_bg": "#F3F4F6",
+      "status_tidak_aktif_text": "#4B5563",
+      "status_terlapor_bg": "#ECFDF5",
+      "status_terlapor_text": "#065F46",
+      "status_belum_terlapor_bg": "#FFF1F2",
+      "status_belum_terlapor_text": "#9F1239"
+    }
+  },
+  "typography": {
+    "font_strategy": "Fraunces / Playfair Display / Outfit paired with Plus Jakarta Sans & IBM Plex Sans. Never use Inter, Roboto, or Space Grotesk.",
+    "heading_font": "'Plus Jakarta Sans', 'Outfit', 'Cinzel', sans-serif",
+    "display_serif_font": "'Playfair Display', 'Spectral', serif",
+    "body_font": "'Plus Jakarta Sans', 'IBM Plex Sans', -apple-system, sans-serif",
+    "mono_font": "'JetBrains Mono', monospace",
+    "scale": {
+      "h1_hero": "text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight",
+      "h2_section": "text-2xl sm:text-3xl font-semibold tracking-tight",
+      "h3_card": "text-lg sm:text-xl font-semibold",
+      "h4_sub": "text-base font-semibold",
+      "body": "text-sm sm:text-base leading-relaxed",
+      "caption": "text-xs font-medium tracking-wide",
+      "overline": "text-[11px] font-bold uppercase tracking-[0.18em]"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "bg-white/85 backdrop-blur-md border border-[#E2E8E4] shadow-sm",
+    "gold_divider": "h-[2px] w-12 bg-gradient-to-r from-[#C9A227] to-transparent rounded-full",
+    "islamic_subtle_badge": "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border",
+    "card_hover": "transition-all duration-200 hover:shadow-md hover:border-[#C9A227]/40 hover:-translate-y-0.5",
+    "portal_hero_gradient": "bg-gradient-to-br from-[#0B3D2E] via-[#123F32] to-[#164A3A] text-white shadow-lg",
+    "gold_accent_pill": "bg-[#FCF7E8] text-[#8C6D14] border border-[#E8D38A] px-2.5 py-0.5 rounded-full text-xs font-semibold"
+  },
+  "image_urls": {
+    "foster_children": [
+      {
+        "url": "https://images.unsplash.com/photo-1646369505116-ff610344f802?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzl8MHwxfHNlYXJjaHw0fHxpbmRvbmVzaWFuJTIwc3R1ZGVudCUyMGNoaWxkJTIwZWR1Y2F0aW9uJTIwc21pbGluZ3xlbnwwfHx8fDE3ODcxNDk1MTV8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Santriwati/Siswa binaan tersenyum ceria belajar kelompok",
+        "category": "child_profile"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1589104760192-ccab0ce0d90f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzl8MHwxfHNlYXJjaHwxfHxpbmRvbmVzaWFuJTIwc3R1ZGVudCUyMGNoaWxkJTIwZWR1Y2F0aW9uJTIwc21pbGluZ3xlbnwwfHx8fDE3ODcxNDk1MTV8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Bimbingan belajar anak asuh kelas intensif",
+        "category": "child_activity"
+      },
+      {
+        "url": "https://images.pexels.com/photos/10643461/pexels-photo-10643461.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Anak asuh santri membaca buku di ruang belajar",
+        "category": "child_profile"
+      },
+      {
+        "url": "https://images.pexels.com/photos/37598779/pexels-photo-37598779.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Santri muda berbusana muslim rapi dan percaya diri",
+        "category": "child_profile"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1644102586062-b474e2086af1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzF8MHwxfHNlYXJjaHwyfHxpbmRvbmVzaWFuJTIweW91dGglMjBzdHVkZW50JTIwcG9ydHJhaXQlMjBzbWlsZXxlbnwwfHx8fDE3ODcxNDk1Mjh8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Potret siswi asuh penerima beasiswa prestasi",
+        "category": "child_profile"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1729695632364-e057cdf7eb2f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzF8MHwxfHNlYXJjaHwxfHxpbmRvbmVzaWFuJTIweW91dGglMjBzdHVkZW50JTIwcG9ydHJhaXQlMjBzbWlsZXxlbnwwfHx8fDE3ODcxNDk1Mjh8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Pendampingan mentor ustadz bersama anak asuh",
+        "category": "mentor_activity"
+      }
+    ],
+    "institution_branding": {
+      "logo_badge": "Lembaga Filantropi Insan Peduli Umat - Program Orang Tua Asuh",
+      "emblem_icon": "Sparkles / Crescent / Book / Heart combination"
+    }
+  },
+  "layout_and_grids": {
+    "admin_layout": {
+      "sidebar": "w-64 bg-[#0B3D2E] text-white flex flex-col justify-between border-r border-[#123F32]",
+      "header": "h-16 bg-white/95 backdrop-blur border-b border-[#E2E8E4] px-6 flex items-center justify-between sticky top-0 z-30",
+      "content_container": "p-6 lg:p-8 max-w-7xl mx-auto space-y-8 bg-[#F8FAF8] min-h-screen",
+      "dashboard_bento": "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5",
+      "two_column_split": "grid grid-cols-1 lg:grid-cols-3 gap-8",
+      "status_matrix_grid": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+    },
+    "public_portal_layout": {
+      "wrapper": "min-h-screen bg-[#F6F8F6] text-[#111E1A] font-sans antialiased",
+      "hero_section": "relative overflow-hidden bg-gradient-to-br from-[#0B3D2E] via-[#123F32] to-[#164A3A] text-white py-10 sm:py-14 px-4 sm:px-8 border-b-4 border-[#C9A227]",
+      "content_width": "max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8",
+      "children_grid": "grid grid-cols-1 md:grid-cols-2 gap-6",
+      "stats_grid": "grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4",
+      "mobile_optimizations": "Optimized for WhatsApp link preview & one-tap accordion expansions with big touch targets (min 44px)"
+    }
+  },
+  "component_blueprints": {
+    "login_page": {
+      "path": "/login",
+      "layout": "Split screen or centered luxury card on subtle emerald geometric motif background",
+      "elements": [
+        "Brand badge with gold crescent/sparkle emblem",
+        "Portal Admin Orang Tua Asuh title with Islamic greeting (Bismillah)",
+        "Email / Username and Password inputs with luxury focus rings",
+        "Remember me checkbox & Bantuan Kontak Admin link",
+        "Sign in primary CTA in #0B3D2E with subtle gold shimmer border",
+        "Security assurance note: 'Sistem Terenkripsi & Terverifikasi Pengelola'"
+      ]
+    },
+    "admin_dashboard": {
+      "path": "/admin/dashboard",
+      "widgets": [
+        "Hero welcome banner with current Hijri & Gregorian date in Indonesian",
+        "4 Metric Cards: Total Orang Tua Asuh Aktif, Total Anak Asuh Binaan, Total Donasi Bulan Ini (IDR), Rasio Laporan Terlapor (%)",
+        "Status Distribution Orang Tua Asuh (Rutin, Tidak Rutin, Insidentil, Tidak Aktif) with visual badges and count bars",
+        "Laporan Bulanan Status Monitor (Widget ringkasan bulan berjalan + tombol aksi cepat unduh/kelola)",
+        "Aktivitas Terkini (Donasi masuk terbaru, capaian/perkembangan anak asuh terinput)",
+        "Quick Action Drawer/Buttons: Tambah Donasi, Input Capaian, Tambah Orang Tua Asuh, Buat Relasi"
+      ]
+    },
+    "orang_tua_asuh_module": {
+      "list_view": {
+        "filters": "Search nama/kontak, status commitment (Rutin/Tidak Rutin/Insidentil/Tidak Aktif), sorting",
+        "presentation": "Modern card grid with status badge, jumlah anak asuh terhubung, total riwayat donasi, WhatsApp direct button, dan Salin Tautan Portal tombol cepat"
+      },
+      "detail_view": {
+        "header": "Nama lengkap, No WA, Alamat/Kota, Komitmen Donasi Bulanan, Status Badge, Token Portal Private Link with One-Click Copy & Preview",
+        "tabs": [
+          { "key": "ringkasan", "label": "Ringkasan & Profil", "content": "Info personal, kontak, preferensi laporan, catatan khusus" },
+          { "key": "anak_asuh", "label": "Anak Asuh Binaan", "content": "Daftar anak asuh yang didanai (Many-to-Many cards) + aksi kelola relasi" },
+          { "key": "perkembangan", "label": "Perkembangan Anak", "content": "Feed capaian/hafalan/rapor khusus anak binaan orang tua asuh ini" },
+          { "key": "donasi", "label": "Riwayat Donasi", "content": "Catatan donasi lembaga (Tanggal, Metode, Nominal, Bukti Transfer)" }
+        ]
+      }
+    },
+    "anak_asuh_module": {
+      "list_view": {
+        "filters": "Search nama/NIM, angkatan, jenjang pendidikan (SD/SMP/SMA/Kuliah), status binaan",
+        "presentation": "Card grid with avatar photo, NIM, angkatan badge, nama sekolah/pesantren, jumlah Orang Tua Asuh terkait"
+      },
+      "detail_view": {
+        "header": "Foto resmi, Nama Lengkap, NIM, Angkatan, Jenjang, Status Aktif, Wali/Pembina",
+        "profile_card": "Biodata, latar belakang keluarga, cita-cita, tanggal masuk, prestasi unggulan",
+        "related_foster_parents": "Many-to-Many junction cards showing all Orang Tua Asuh funding this child with status and since date",
+        "development_timeline": "Timeline capaian berkala (Akademik, Al-Qur'an/Hafalan, Karakter, Kesehatan) with filter by semester"
+      }
+    },
+    "relation_manager_module": {
+      "path": "/admin/relasi",
+      "concept": "Junction table manager to connect multiple foster parents with multiple children (Many-to-Many)",
+      "features": [
+        "Interactive pairing modal / form: Pilih Orang Tua Asuh -> Pilih Anak Asuh -> Tanggal Mulai Relasi -> Catatan Penugasan",
+        "Matrix view & searchable linked pairs list with unassign/reassign actions and bulk management"
+      ]
+    },
+    "donasi_module": {
+      "path": "/admin/donasi",
+      "strict_rule": "Donasi is recorded for Orang Tua Asuh only and NEVER directly linked to a specific child (Institutional pooled fund rule)",
+      "features": [
+        "Filter by date range, Orang Tua Asuh, metode pembayaran (Transfer Bank, QRIS, Tunai, Auto-Debit), status verifikasi",
+        "Summary stats: Total Terkumpul Periode Ini, Rata-rata Donasi, Donatur Baru",
+        "Modal Form Catat Donasi: Pilih Orang Tua Asuh, Tanggal, Nominal (Rupiah auto-format), Bank Tujuan, Catatan/Doa, Upload/Link Bukti"
+      ]
+    },
+    "perkembangan_module": {
+      "path": "/admin/perkembangan",
+      "concept": "Accordion-based child progress logging by Child, Semester, and Category",
+      "categories": [
+        "Tahfidz & Al-Qur'an (Juz, Surat, Kelancaran)",
+        "Akademik & Sekolah (Nilai Rapor, Prestasi Lomba)",
+        "Karakter & Ibadah (Shalat berjamaah, Kedisiplinan)",
+        "Kesehatan & Kemandirian (Kebugaran, Ekstrakurikuler)"
+      ],
+      "features": [
+        "Accordion grouped by Anak Asuh and Semester",
+        "Form input capaian baru with date, category badge, score/level, narrative description, photo attachment",
+        "Status visibility toggle (Publikasikan ke Portal Orang Tua Asuh)"
+      ]
+    },
+    "laporan_bulanan_module": {
+      "path": "/admin/laporan",
+      "concept": "Matrix checklist & distribution tracker for monthly foster-parent reports",
+      "features": [
+        "Month & Year filter (e.g., Februari 2026)",
+        "Status filter: Semua, Terlapor (Sent/Ready), Belum Terlapor",
+        "Matrix table/cards showing each Orang Tua Asuh, list of their assigned children, report preparation status, WA send shortcut with pre-filled message + token link, and mark as completed timestamp"
+      ]
+    },
+    "public_foster_portal": {
+      "path": "/portal/:token",
+      "concept": "Exclusive private link for foster parents (NO LOGIN required) — mobile first and emotionally heartwarming",
+      "sections": [
+        {
+          "name": "Hero Greeting",
+          "content": "Assalamu'alaikum Warahmatullahi Wabarakatuh, Bapak/Ibu [Nama Orang Tua Asuh]. 'Jazakumullah Khairan atas kebaikan dan ketulusan Anda menjadi Orang Tua Asuh bagi generasi penerus umat.'"
+        },
+        {
+          "name": "Ringkasan Binaan",
+          "content": "4 Key Metrics: Anak Binaan Aktif, Total Capaian Terdata, Status Laporan Bulan Berjalan, Masa Menjadi Orang Tua Asuh"
+        },
+        {
+          "name": "Daftar Anak Asuh",
+          "content": "Interactive Child Cards with high quality photo, school/grade, dream/cita-cita, hobby, and button 'Lihat Capaian & Profil Lengkap'"
+        },
+        {
+          "name": "Detail Perkembangan & Linimasa",
+          "content": "Filterable timeline by child & category (Tahfidz, Akademik, Karakter) with rich cards showing progress, photo activities, and teacher/mentor notes"
+        },
+        {
+          "name": "Riwayat Donasi Kebaikan",
+          "content": "Clean chronological list showing Tanggal, Bulan Donasi, Nominal (IDR), Status Diterima. STRICT: Institutional donation ledger only (no per-child allocation)"
+        },
+        {
+          "name": "Status Laporan Bulanan",
+          "content": "Interactive calendar/monthly cards showing report publication status with PDF download/view action"
+        },
+        {
+          "name": "Hubungi Pengurus / Doa",
+          "content": "Floating / footer action to send doa to foster child or contact institution care coordinator via WhatsApp"
+        }
+      ]
+    }
+  },
+  "interaction_guidelines": {
+    "data_testid_convention": "kebab-case, role-based. Examples: 'btn-add-donasi', 'input-search-ota', 'card-anak-asuh-1', 'tab-perkembangan', 'btn-copy-portal-token', 'status-badge-rutin'",
+    "toast_notifications": "Use Sonner with emerald green success style for save/copy/publish actions, and amber for warnings",
+    "empty_states": "Warm illustrated empty states with Islamic aesthetic and friendly call-to-action in Bahasa Indonesia",
+    "loading_states": "Subtle skeleton pulse in tinted green/gold instead of harsh gray rectangles"
+  },
+  "instructions_to_main_agent": [
+    "Build the complete application with React 19, Tailwind CSS, Lucide icons, Framer Motion, and Radix UI / Sonner primitives.",
+    "Ensure 100% Bahasa Indonesia across all UI texts, notifications, forms, and placeholders.",
+    "Provide rich realistic mock data with Indonesian names, pesantren/school names, realistic rupiah donations, and authentic progress records (Tahfidz juz 29-30, ranking sekolah, etc.).",
+    "Ensure the public portal at /portal/:token works seamlessly without any login barrier, while admin routes are protected or accessible via login at /login.",
+    "Adhere strictly to the Dark Green (#0B3D2E, #123F32) and Gold (#C9A227) theme with clean light content background.",
+    "Donasi records MUST NOT link to a specific child; they belong strictly to Orang Tua Asuh.",
+    "Add data-testid attributes to all key buttons, inputs, links, tabs, and status badges."
+  ]
+}

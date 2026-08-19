@@ -1,0 +1,39 @@
+{
+  "summary": "Backend-only testing for Portal Orang Tua Asuh. Created /app/backend/tests/backend_test.py with 21 pytest tests covering auth, dashboard, guardians (CRUD, portal token uniqueness/regeneration), children (CRUD + unique NIM), photo upload+download, relations (create/duplicate/delete), donations (guardian-only, no child_id), developments, reports (upsert + monthly merge with all guardians), public portal (no auth, no per-child donation attribution, 404 on invalid token), and settings. All 21 tests pass (100%).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "pytest.ini", "issue": "Enforces -n 2 --dist loadscope; class-scoped shared TEST_STATE breaks under loadscope because sibling classes get split across workers. Tests are stable only with -n 0. Command to run: `pytest backend/tests/backend_test.py -n 0`."},
+      {"endpoint": "CORS middleware", "issue": "allow_credentials=False while login sets an httpOnly cookie with SameSite=None Secure — cookie-based auth from browser will not send credentials cross-site. Frontend must therefore rely on Authorization: Bearer header (which it does via localStorage token). Not blocking, but the cookie is effectively dead-weight in this config."},
+      {"endpoint": "/api/auth/login", "issue": "No brute-force lockout / rate limit implemented (playbook mentions 5-fail lockout). Not enforced by request but worth noting."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Optional: relax pytest.ini or make tests self-contained per-test if parallel execution is desired.",
+    "Optional: add brute-force lockout on /api/auth/login per playbook guidance.",
+    "Optional: fix CORS/cookie mismatch (allow_credentials=True + explicit origins) if cookie-based session is intended; otherwise remove the cookie set as it currently serves no purpose."
+  ],
+  "critical_code_review_comments": [
+    "server.py is 980 lines — consider splitting into routers/models/seed modules (>700 line guideline).",
+    "CORS allow_origins=['*'] with allow_credentials=False is inconsistent with cookie-based auth attempt; either enable credentials with explicit origin list, or drop the cookie.",
+    "put_object/get_object are synchronous requests inside async endpoints — will block the event loop under load; consider httpx.AsyncClient or run_in_threadpool.",
+    "No rate limiting / lockout on login endpoint.",
+    "MongoDB unique index on relations (guardian_id, child_id) is created on startup — good; app-level duplicate check exists — good.",
+    "Public portal correctly omits child_id/guardian_id/child_name from donations (verified by test).",
+    "Regenerate-token endpoint correctly invalidates the old token (verified: old token → 404, new → 200)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py"
+  ],
+  "success_rate": {"backend": "100% (21/21)", "frontend": "not tested (backend-only request)"},
+  "test_credentials": "Admin: bmarrahmah@gmail.com / Admin@2026 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Startup seed already creates 5 guardians, 10 children, 15 donations, ~30 developments, and reports for 2026-06/2026-07/2026-08. Tests create TEST_-prefixed guardians/children which are cleaned up by test_zzz_cleanup.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend fully green. Run with: `cd /app && python -m pytest backend/tests/backend_test.py -n 0 -v`. Do NOT rely on default xdist parallel; tests use module-level TEST_STATE dict shared across classes. Frontend testing was NOT performed as request specified backend only. The Emergent object storage is available (upload test passes)."
+}

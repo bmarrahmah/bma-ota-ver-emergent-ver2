@@ -1,0 +1,123 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:wght@500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --pota-green: #0B3D2E;
+  --pota-green-2: #123F32;
+  --pota-green-3: #164A3A;
+  --pota-green-deep: #07261D;
+  --pota-gold: #C9A227;
+  --pota-gold-bright: #D4AF37;
+  --pota-gold-soft: #FCF7E8;
+  --pota-gold-border: #E8D38A;
+  --pota-canvas: #F8FAF8;
+  --pota-surface: #F2F5F3;
+  --pota-text: #111E1A;
+  --pota-text-muted: #5C6F67;
+  --pota-border: #E2E8E4;
+}
+
+@layer base {
+  :root {
+    --background: 140 8% 97%;
+    --foreground: 155 25% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 155 25% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 155 25% 9%;
+    --primary: 155 70% 14%;
+    --primary-foreground: 45 60% 96%;
+    --secondary: 140 12% 94%;
+    --secondary-foreground: 155 25% 15%;
+    --muted: 140 12% 94%;
+    --muted-foreground: 155 12% 40%;
+    --accent: 45 62% 47%;
+    --accent-foreground: 155 40% 12%;
+    --destructive: 350 76% 43%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 140 10% 89%;
+    --input: 140 10% 89%;
+    --ring: 45 62% 47%;
+    --radius: 0.75rem;
+  }
+}
+
+* { border-color: hsl(var(--border)); }
+
+html, body, #root {
+  min-height: 100%;
+  background: var(--pota-canvas);
+  color: var(--pota-text);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display { font-family: 'Playfair Display', 'Fraunces', serif; }
+.font-serif-luxe { font-family: 'Fraunces', 'Playfair Display', serif; }
+
+.pota-sidebar {
+  background: linear-gradient(180deg, #0B3D2E 0%, #07261D 100%);
+  color: #E7EFEA;
+}
+
+.pota-hero-portal {
+  background:
+    radial-gradient(1200px 400px at 90% -20%, rgba(201,162,39,0.18), transparent 60%),
+    linear-gradient(135deg, #0B3D2E 0%, #123F32 45%, #164A3A 100%);
+  color: #F6EFD9;
+}
+
+.gold-divider {
+  height: 2px;
+  width: 56px;
+  background: linear-gradient(90deg, var(--pota-gold) 0%, transparent 100%);
+  border-radius: 999px;
+}
+
+.pota-card {
+  background: #ffffff;
+  border: 1px solid var(--pota-border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(11,61,46,0.04), 0 8px 24px -12px rgba(11,61,46,0.08);
+  transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
+}
+
+.pota-card:hover {
+  box-shadow: 0 4px 8px rgba(11,61,46,0.06), 0 20px 32px -18px rgba(11,61,46,0.14);
+  border-color: rgba(201,162,39,0.35);
+}
+
+.pota-pill-gold {
+  background: var(--pota-gold-soft);
+  color: #7A5B14;
+  border: 1px solid var(--pota-gold-border);
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.status-rutin { background:#E6F4EA; color:#0F5B38; border:1px solid #C9E6D3; }
+.status-tidak-rutin { background:#FEF3C7; color:#92400E; border:1px solid #FDE68A; }
+.status-insidentil { background:#E0F2FE; color:#075985; border:1px solid #BAE6FD; }
+.status-tidak-aktif { background:#F3F4F6; color:#4B5563; border:1px solid #E5E7EB; }
+.status-terlapor { background:#ECFDF5; color:#065F46; border:1px solid #A7F3D0; }
+.status-belum { background:#FFF1F2; color:#9F1239; border:1px solid #FECDD3; }
+
+.pota-input:focus-within {
+  border-color: var(--pota-gold);
+  box-shadow: 0 0 0 3px rgba(201,162,39,0.15);
+}
+
+.pattern-bg {
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(201,162,39,0.06), transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(11,61,46,0.05), transparent 40%);
+}
+
+.scrollbar-slim::-webkit-scrollbar { width: 8px; height: 8px; }
+.scrollbar-slim::-webkit-scrollbar-thumb { background: rgba(11,61,46,0.15); border-radius: 999px; }
