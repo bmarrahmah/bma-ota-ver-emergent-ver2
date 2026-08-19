@@ -2,14 +2,18 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import api, { formatDate } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
+import ChildForm from "@/components/ChildForm";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ArrowLeft, MapPin, Calendar, Users2, Home } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ArrowLeft, MapPin, Calendar, Users2, Home, Edit3 } from "lucide-react";
 
 export default function AnakAsuhDetailPage() {
   const { id } = useParams();
   const [c, setC] = useState(null);
+  const [editOpen, setEditOpen] = useState(false);
 
-  useEffect(() => { api.get(`/children/${id}`).then((r) => setC(r.data)); }, [id]);
+  const load = () => api.get(`/children/${id}`).then((r) => setC(r.data));
+  useEffect(() => { load(); }, [id]);
   if (!c) return <div className="text-sm text-[var(--pota-text-muted)]">Memuat...</div>;
 
   const grouped = (c.developments || []).reduce((acc, d) => {
@@ -33,7 +37,12 @@ export default function AnakAsuhDetailPage() {
           </div>
           <div className="flex-1">
             <div className="gold-divider mb-3" />
-            <h1 className="font-display text-3xl text-[var(--pota-green)]">{c.name}</h1>
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="font-display text-3xl text-[var(--pota-green)]">{c.name}</h1>
+              <button data-testid="btn-edit-child" onClick={()=>setEditOpen(true)} className="inline-flex items-center gap-2 border border-[var(--pota-border)] px-3 py-2 rounded-xl text-sm font-semibold hover:border-[var(--pota-gold)]">
+                <Edit3 className="w-4 h-4" /> Edit
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2 mt-2 text-sm">
               <span className="pota-pill-gold">NIM {c.nim}</span>
               <span className="pota-pill-gold">Angkatan {c.generation}</span>
@@ -115,6 +124,13 @@ export default function AnakAsuhDetailPage() {
           </Accordion>
         )}
       </div>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle className="font-display text-[var(--pota-green)]">Edit Anak Asuh</DialogTitle></DialogHeader>
+          <ChildForm initial={c} onSaved={()=>{ setEditOpen(false); load(); }} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

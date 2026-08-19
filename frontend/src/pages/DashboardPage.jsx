@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import api, { formatIDR, formatMonth } from "@/lib/api";
-import { Users, GraduationCap, HandCoins, ClipboardCheck, Sparkles, ArrowUpRight } from "lucide-react";
+import { Users, GraduationCap, HandCoins, ClipboardCheck, Sparkles, TrendingUp } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 const StatCard = ({ icon: Icon, label, value, sub, testid }) => (
   <div data-testid={testid} className="pota-card p-5">
@@ -19,11 +20,21 @@ const StatCard = ({ icon: Icon, label, value, sub, testid }) => (
   </div>
 );
 
+const compactIDR = (n) => {
+  if (!n) return "0";
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}M`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}Jt`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}rb`;
+  return String(n);
+};
+
 export default function DashboardPage() {
   const [stats, setStats] = useState(null);
+  const [trend, setTrend] = useState([]);
 
   useEffect(() => {
     api.get("/dashboard/stats").then((r) => setStats(r.data));
+    api.get("/dashboard/donation-trend").then((r) => setTrend(r.data));
   }, []);
 
   if (!stats) {
@@ -36,6 +47,7 @@ export default function DashboardPage() {
 
   const dist = stats.status_distribution;
   const total = Math.max(1, stats.total_guardians);
+  const trendTotal = trend.reduce((s, t) => s + t.amount, 0);
 
   return (
     <div className="space-y-6" data-testid="page-dashboard">
@@ -50,6 +62,40 @@ export default function DashboardPage() {
         <StatCard testid="stat-total-anak" icon={GraduationCap} label="Anak Asuh" value={stats.total_children} sub="Binaan aktif" />
         <StatCard testid="stat-donasi-bulan" icon={HandCoins} label={`Donasi ${formatMonth(stats.current_month)}`} value={formatIDR(stats.donation_this_month)} sub={`Total ${formatIDR(stats.total_donation)}`} />
         <StatCard testid="stat-laporan" icon={ClipboardCheck} label="Laporan Terlapor" value={`${stats.reports_this_month}/${stats.active_guardians}`} sub={`${stats.reports_pending} belum terlapor`} />
+      </div>
+
+      <div className="pota-card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <div className="text-[11px] tracking-[0.16em] uppercase text-[var(--pota-text-muted)] font-semibold">Tren Donasi 12 Bulan</div>
+            <div className="font-display text-xl text-[var(--pota-green)] mt-1">Momentum Kebaikan</div>
+          </div>
+          <div className="text-right">
+            <div className="text-[11px] uppercase tracking-wider text-[var(--pota-text-muted)]">Akumulasi</div>
+            <div className="font-display text-lg text-[var(--pota-green)] inline-flex items-center gap-1"><TrendingUp className="w-4 h-4 text-[var(--pota-gold)]" /> {formatIDR(trendTotal)}</div>
+          </div>
+        </div>
+        <div className="w-full h-64">
+          <ResponsiveContainer>
+            <AreaChart data={trend} margin={{ top: 8, right: 8, left: -6, bottom: 0 }}>
+              <defs>
+                <linearGradient id="donaGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#C9A227" stopOpacity={0.55}/>
+                  <stop offset="100%" stopColor="#0B3D2E" stopOpacity={0.05}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8E4" vertical={false} />
+              <XAxis dataKey="label" stroke="#5C6F67" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke="#5C6F67" fontSize={11} tickLine={false} axisLine={false} tickFormatter={compactIDR} width={50} />
+              <Tooltip
+                contentStyle={{ background: "#fff", border: "1px solid #E2E8E4", borderRadius: 12, fontSize: 12 }}
+                formatter={(v) => [formatIDR(v), "Donasi"]}
+                labelStyle={{ color: "#0B3D2E", fontWeight: 600 }}
+              />
+              <Area type="monotone" dataKey="amount" stroke="#0B3D2E" strokeWidth={2.5} fill="url(#donaGrad)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

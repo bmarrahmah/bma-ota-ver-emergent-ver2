@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import api, { formatIDR, formatMonth, formatDate, errText } from "@/lib/api";
+import api, { formatIDR, formatMonth, formatDate, errText, API } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
+import GuardianForm from "@/components/GuardianForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy, ExternalLink, Phone, MapPin, Mail, ArrowLeft, RefreshCcw } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Copy, ExternalLink, Phone, MapPin, Mail, ArrowLeft, RefreshCcw, Edit3, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export default function OrangTuaAsuhDetailPage() {
@@ -12,6 +14,7 @@ export default function OrangTuaAsuhDetailPage() {
   const [children, setChildren] = useState([]);
   const [donations, setDonations] = useState([]);
   const [devs, setDevs] = useState([]);
+  const [editOpen, setEditOpen] = useState(false);
 
   const load = async () => {
     const r = await api.get(`/guardians/${id}`);
@@ -22,7 +25,6 @@ export default function OrangTuaAsuhDetailPage() {
     setChildren(kids);
     const d = await api.get(`/donations`, { params: { guardian_id: id } });
     setDonations(d.data);
-    // devs of all children
     const allDevs = kids.flatMap((c) => (c.developments || []).map(d => ({ ...d, child_name: c.name })));
     setDevs(allDevs);
   };
@@ -38,6 +40,17 @@ export default function OrangTuaAsuhDetailPage() {
       toast.success("Tautan portal diperbarui");
       load();
     } catch (e) { toast.error(errText(e)); }
+  };
+  const sendWA = () => {
+    const msg =
+      `Assalamu'alaikum warahmatullahi wabarakatuh,\n\nBapak/Ibu ${g.name} yang kami hormati.\n\n` +
+      `Jazakumullah khairan atas kebaikan menjadi Orang Tua Asuh. Berikut kami sampaikan tautan portal pribadi Anda untuk melihat perkembangan anak asuh, riwayat donasi, dan laporan bulanan:\n\n${portalUrl}\n\n` +
+      `Semoga menjadi amal jariyah yang mengalir. Barakallahu fiikum.`;
+    const phone = (g.contact || "").replace(/\D/g, "");
+    const wa = phone
+      ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(wa, "_blank");
   };
 
   return (
@@ -58,15 +71,21 @@ export default function OrangTuaAsuhDetailPage() {
               {g.address && <span className="inline-flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {g.address}</span>}
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <button data-testid="btn-copy-portal" onClick={copy} className="inline-flex items-center gap-2 bg-[var(--pota-green)] text-white px-4 py-2.5 rounded-xl text-sm font-semibold">
-              <Copy className="w-4 h-4" /> Salin Tautan Portal
+          <div className="flex flex-wrap gap-2">
+            <button data-testid="btn-edit-ota" onClick={()=>setEditOpen(true)} className="inline-flex items-center gap-2 border border-[var(--pota-border)] px-3 py-2.5 rounded-xl text-sm font-semibold hover:border-[var(--pota-gold)]">
+              <Edit3 className="w-4 h-4" /> Edit Data
             </button>
-            <a data-testid="btn-open-portal" href={`/portal/${g.portal_token}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-[var(--pota-green)] text-[var(--pota-green)] px-4 py-2.5 rounded-xl text-sm font-semibold">
+            <button data-testid="btn-copy-portal" onClick={copy} className="inline-flex items-center gap-2 bg-[var(--pota-green)] text-white px-3 py-2.5 rounded-xl text-sm font-semibold">
+              <Copy className="w-4 h-4" /> Salin Link
+            </button>
+            <button data-testid="btn-send-wa" onClick={sendWA} className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white px-3 py-2.5 rounded-xl text-sm font-semibold">
+              <MessageCircle className="w-4 h-4" /> Kirim WhatsApp
+            </button>
+            <a data-testid="btn-open-portal" href={`/portal/${g.portal_token}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-[var(--pota-green)] text-[var(--pota-green)] px-3 py-2.5 rounded-xl text-sm font-semibold">
               <ExternalLink className="w-4 h-4" /> Buka Portal
             </a>
-            <button onClick={regenerate} className="inline-flex items-center gap-2 text-sm text-[var(--pota-text-muted)] px-3 py-2.5 rounded-xl hover:text-[var(--pota-green)]">
-              <RefreshCcw className="w-4 h-4" /> Generate ulang
+            <button onClick={regenerate} title="Regenerate token" className="inline-flex items-center gap-2 text-sm text-[var(--pota-text-muted)] px-2 py-2.5 rounded-xl hover:text-[var(--pota-green)]">
+              <RefreshCcw className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -164,6 +183,13 @@ export default function OrangTuaAsuhDetailPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle className="font-display text-[var(--pota-green)]">Edit Orang Tua Asuh</DialogTitle></DialogHeader>
+          <GuardianForm initial={g} onSaved={()=>{ setEditOpen(false); load(); }} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

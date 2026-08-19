@@ -1,63 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import api, { formatIDR, errText } from "@/lib/api";
+import api, { formatIDR } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Search, Plus, Copy, ExternalLink, Users2 } from "lucide-react";
+import GuardianForm from "@/components/GuardianForm";
+import { Search, Plus, Copy, ExternalLink, Users2, MessageCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 const STATUSES = ["Rutin", "Tidak Rutin", "Insidentil", "Tidak Aktif"];
-
-function GuardianForm({ onSaved, initial }) {
-  const [f, setF] = useState(initial || { name: "", contact: "", email: "", address: "", status: "Rutin", notes: "" });
-  const [saving, setSaving] = useState(false);
-  const submit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      if (initial?.id) await api.put(`/guardians/${initial.id}`, f);
-      else await api.post("/guardians", f);
-      toast.success("Orang Tua Asuh disimpan");
-      onSaved();
-    } catch (e) { toast.error(errText(e)); }
-    finally { setSaving(false); }
-  };
-  return (
-    <form onSubmit={submit} className="space-y-3">
-      <div>
-        <label className="text-xs font-semibold uppercase tracking-wide">Nama Lengkap *</label>
-        <input data-testid="input-ota-name" required value={f.name} onChange={(e)=>setF({...f, name:e.target.value})} className="w-full mt-1 px-3 py-2 border rounded-lg" />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs font-semibold uppercase tracking-wide">Nomor Kontak</label>
-          <input data-testid="input-ota-contact" value={f.contact} onChange={(e)=>setF({...f, contact:e.target.value})} className="w-full mt-1 px-3 py-2 border rounded-lg" />
-        </div>
-        <div>
-          <label className="text-xs font-semibold uppercase tracking-wide">Email</label>
-          <input value={f.email} onChange={(e)=>setF({...f, email:e.target.value})} className="w-full mt-1 px-3 py-2 border rounded-lg" />
-        </div>
-      </div>
-      <div>
-        <label className="text-xs font-semibold uppercase tracking-wide">Alamat</label>
-        <input value={f.address} onChange={(e)=>setF({...f, address:e.target.value})} className="w-full mt-1 px-3 py-2 border rounded-lg" />
-      </div>
-      <div>
-        <label className="text-xs font-semibold uppercase tracking-wide">Status Komitmen</label>
-        <Select value={f.status} onValueChange={(v)=>setF({...f, status:v})}>
-          <SelectTrigger data-testid="select-ota-status" className="mt-1"><SelectValue /></SelectTrigger>
-          <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-        </Select>
-      </div>
-      <div>
-        <label className="text-xs font-semibold uppercase tracking-wide">Catatan</label>
-        <textarea value={f.notes} onChange={(e)=>setF({...f, notes:e.target.value})} className="w-full mt-1 px-3 py-2 border rounded-lg" rows={2} />
-      </div>
-      <button data-testid="btn-save-ota" disabled={saving} className="w-full bg-[var(--pota-green)] text-white py-2.5 rounded-lg font-semibold">{saving ? "Menyimpan..." : "Simpan"}</button>
-    </form>
-  );
-}
 
 export default function OrangTuaAsuhListPage() {
   const [rows, setRows] = useState([]);
@@ -78,6 +29,19 @@ export default function OrangTuaAsuhListPage() {
     const url = `${window.location.origin}/portal/${token}`;
     navigator.clipboard.writeText(url);
     toast.success("Tautan portal disalin");
+  };
+
+  const sendWA = (g) => {
+    const url = `${window.location.origin}/portal/${g.portal_token}`;
+    const msg =
+      `Assalamu'alaikum warahmatullahi wabarakatuh,\n\nBapak/Ibu ${g.name} yang kami hormati.\n\n` +
+      `Jazakumullah khairan atas kebaikan menjadi Orang Tua Asuh. Berikut kami sampaikan tautan portal pribadi Anda untuk melihat perkembangan anak asuh, riwayat donasi, dan laporan bulanan:\n\n${url}\n\n` +
+      `Semoga menjadi amal jariyah yang mengalir. Barakallahu fiikum.`;
+    const phone = (g.contact || "").replace(/\D/g, "");
+    const wa = phone
+      ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(wa, "_blank");
   };
 
   return (
@@ -145,11 +109,14 @@ export default function OrangTuaAsuhListPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2 pt-2 border-t border-[var(--pota-border)]">
-                <button data-testid={`btn-copy-token-${g.id}`} onClick={()=>copyPortal(g.portal_token)} className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-[var(--pota-green)] hover:text-[var(--pota-gold)]">
-                  <Copy className="w-3.5 h-3.5" /> Salin Portal
+                <button data-testid={`btn-copy-token-${g.id}`} onClick={()=>copyPortal(g.portal_token)} title="Salin tautan portal" className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-[var(--pota-green)] hover:text-[var(--pota-gold)]">
+                  <Copy className="w-3.5 h-3.5" /> Salin
+                </button>
+                <button data-testid={`btn-wa-${g.id}`} onClick={()=>sendWA(g)} title="Kirim via WhatsApp" className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-[#075E54] hover:text-[#128C7E]">
+                  <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
                 </button>
                 <a data-testid={`btn-open-portal-${g.id}`} href={`/portal/${g.portal_token}`} target="_blank" rel="noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-[var(--pota-green)] hover:text-[var(--pota-gold)]">
-                  <ExternalLink className="w-3.5 h-3.5" /> Buka Portal
+                  <ExternalLink className="w-3.5 h-3.5" /> Buka
                 </a>
               </div>
             </div>

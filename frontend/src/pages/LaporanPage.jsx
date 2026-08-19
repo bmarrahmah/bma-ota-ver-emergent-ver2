@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import api, { formatMonth, errText } from "@/lib/api";
+import api, { formatMonth, errText, API } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Check, Edit3, ClipboardCheck } from "lucide-react";
+import { Check, Edit3, ClipboardCheck, FileDown } from "lucide-react";
 import { toast } from "sonner";
 
 const monthOptions = () => {
@@ -50,6 +50,26 @@ export default function LaporanPage() {
       await api.post("/reports", { guardian_id: row.guardian_id, month, summary: row.summary || `Laporan ${formatMonth(month)} telah disampaikan.`, status: "Terlapor" });
       toast.success("Ditandai Terlapor"); load();
     } catch (e) { toast.error(errText(e)); }
+  };
+
+  const downloadPdf = async (row) => {
+    try {
+      const t = localStorage.getItem("pota_token");
+      const res = await fetch(`${API}/reports/pdf?guardian_id=${row.guardian_id}&month=${month}`, {
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      if (!res.ok) throw new Error("Gagal mengunduh PDF");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Laporan_${row.guardian_name.replace(/\s+/g,"_")}_${month}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("PDF laporan diunduh");
+    } catch (e) { toast.error(e.message || "Gagal mengunduh"); }
   };
 
   const terlapor = rows.filter(r => r.status === "Terlapor").length;
@@ -117,7 +137,10 @@ export default function LaporanPage() {
                   </button>
                 )}
                 <button data-testid={`btn-edit-${r.guardian_id}`} onClick={()=>openEdit(r)} className="flex-1 inline-flex items-center justify-center gap-1 border text-xs font-semibold py-2 rounded-lg">
-                  <Edit3 className="w-3.5 h-3.5" /> Isi Ringkasan
+                  <Edit3 className="w-3.5 h-3.5" /> Ringkasan
+                </button>
+                <button data-testid={`btn-pdf-${r.guardian_id}`} onClick={()=>downloadPdf(r)} title="Unduh PDF" className="inline-flex items-center justify-center gap-1 border text-xs font-semibold py-2 px-2.5 rounded-lg text-[#8C6D14] border-[#E8D38A] bg-[#FCF7E8] hover:bg-[#F5EBC8]">
+                  <FileDown className="w-3.5 h-3.5" /> PDF
                 </button>
               </div>
             </div>

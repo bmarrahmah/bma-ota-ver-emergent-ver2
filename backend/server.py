@@ -9,6 +9,7 @@ import uuid
 import secrets
 import logging
 import random
+import io
 from datetime import datetime, timezone, timedelta, date
 from typing import List, Optional, Literal
 
@@ -16,10 +17,15 @@ import bcrypt
 import jwt
 import requests
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, UploadFile, File, Header, Query
-from fastapi.responses import Response as FastResponse
+from fastapi.responses import Response as FastResponse, StreamingResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 
 # -----------------------------
 # Setup
@@ -328,6 +334,138 @@ async def dashboard_stats(user=Depends(get_current_user)):
         "recent_activity": activities,
         "current_month": current_month,
     }
+
+
+@api.get("/dashboard/donation-trend")
+async def donation_trend(months: int = 12, user=Depends(get_current_user)):
+    now = datetime.now(timezone.utc)
+    buckets = []
+    for i in range(months - 1, -1, -1):
+        year = now.year
+        month = now.month - i
+        while month <= 0:
+            month += 12
+            year -= 1
+        key = f"{year:04d}-{month:02d}"
+        buckets.append(key)
+    docs = await db.donations.find({"donation_month": {"$in": buckets}}).to_list(5000)
+    totals = {k: 0 for k in buckets}
+    counts = {k: 0 for k in buckets}
+    for d in docs:
+        m = d.get("donation_month")
+        if m in totals:
+            totals[m] += d.get("amount", 0)
+            counts[m] += 1
+    names_id = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
+    return [
+        {
+            "month": k,
+            "label": f"{names_id[int(k.split('-')[1])-1]} {k.split('-')[0][2:]}",
+            "amount": totals[k],
+            "count": counts[k],
+        }
+        for k in buckets
+    ]
+
+
+@api.get("/reports/pdf")
+async def report_pdf(guardian_id: str, month: str, user=Depends(get_current_user)):
+    g = await db.guardians.find_one({"id": guardian_id})
+    if not g:
+        raise HTTPException(404, "Orang Tua Asuh tidak ditemukan")
+    report = await db.reports.find_one({"guardian_id": guardian_id, "month": month})
+    settings = await db.settings.find_one({"id": "main"}) or {}
+    rels = await db.relations.find({"guardian_id": guardian_id}).to_list(200)
+    child_ids = [r["child_id"] for r in rels]
+    children = await db.children.find({"id": {"$in": child_ids}}).to_list(200)
+    devs_by_child = {}
+    for c in children:
+        devs = await db.developments.find({"child_id": c["id"]}).sort("created_at", -1).to_list(200)
+        devs_by_child[c["id"]] = devs
+
+    names_id = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"]
+    y, m = month.split("-")
+    period_label = f"{names_id[int(m)-1]} {y}"
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        leftMargin=2*cm, rightMargin=2*cm, topMargin=2.2*cm, bottomMargin=2*cm,
+        title=f"Laporan {g['name']} - {period_label}",
+    )
+    styles = getSampleStyleSheet()
+    GREEN = colors.HexColor("#0B3D2E")
+    GOLD = colors.HexColor("#C9A227")
+    MUTED = colors.HexColor("#5C6F67")
+
+    h1 = ParagraphStyle("h1", parent=styles["Title"], textColor=GREEN, fontName="Helvetica-Bold", fontSize=22, leading=26, spaceAfter=6)
+    over = ParagraphStyle("over", parent=styles["Normal"], textColor=GOLD, fontName="Helvetica-Bold", fontSize=9, leading=12, spaceAfter=2)
+    h2 = ParagraphStyle("h2", parent=styles["Heading2"], textColor=GREEN, fontName="Helvetica-Bold", fontSize=14, leading=18, spaceBefore=14, spaceAfter=6)
+    h3 = ParagraphStyle("h3", parent=styles["Heading3"], textColor=GREEN, fontName="Helvetica-Bold", fontSize=12, leading=15, spaceBefore=8, spaceAfter=4)
+    body = ParagraphStyle("body", parent=styles["Normal"], textColor=colors.HexColor("#111E1A"), fontName="Helvetica", fontSize=10.5, leading=15)
+    muted = ParagraphStyle("muted", parent=styles["Normal"], textColor=MUTED, fontName="Helvetica", fontSize=9, leading=12)
+    pill = ParagraphStyle("pill", parent=styles["Normal"], textColor=colors.HexColor("#7A5B14"), fontName="Helvetica-Bold", fontSize=9)
+
+    story = []
+    story.append(Paragraph("PORTAL ORANG TUA ASUH", over))
+    story.append(Paragraph(settings.get("institution_name", "Yayasan Insan Peduli Umat"), h1))
+    if settings.get("tagline"):
+        story.append(Paragraph(settings["tagline"], muted))
+    story.append(Spacer(1, 12))
+
+    info_table = Table([
+        [Paragraph("<b>Orang Tua Asuh</b>", body), Paragraph(g["name"], body)],
+        [Paragraph("<b>Status</b>", body), Paragraph(g.get("status", "-"), body)],
+        [Paragraph("<b>Periode</b>", body), Paragraph(period_label, body)],
+        [Paragraph("<b>Tanggal Cetak</b>", body), Paragraph(datetime.now(timezone.utc).strftime("%d %B %Y"), body)],
+    ], colWidths=[4.2*cm, 12*cm])
+    info_table.setStyle(TableStyle([
+        ("BOX", (0,0), (-1,-1), 0.5, colors.HexColor("#E2E8E4")),
+        ("INNERGRID", (0,0), (-1,-1), 0.25, colors.HexColor("#E2E8E4")),
+        ("BACKGROUND", (0,0), (0,-1), colors.HexColor("#F8FAF8")),
+        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+        ("LEFTPADDING", (0,0), (-1,-1), 8),
+        ("RIGHTPADDING", (0,0), (-1,-1), 8),
+        ("TOPPADDING", (0,0), (-1,-1), 6),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+    ]))
+    story.append(info_table)
+
+    if report and report.get("summary"):
+        story.append(Paragraph("Ringkasan Laporan", h2))
+        story.append(Paragraph(report["summary"].replace("\n", "<br/>"), body))
+    else:
+        story.append(Paragraph("Ringkasan Laporan", h2))
+        story.append(Paragraph("<i>Laporan untuk periode ini belum tersedia.</i>", muted))
+
+    story.append(Paragraph("Anak Asuh dan Capaian", h2))
+    if not children:
+        story.append(Paragraph("Belum ada anak asuh yang terhubung.", muted))
+    for c in children:
+        story.append(Paragraph(f"{c['name']} — NIM {c.get('nim', '-')}", h3))
+        story.append(Paragraph(f"Angkatan {c.get('generation', '-')} · {c.get('school', '-')}", muted))
+        devs = devs_by_child.get(c["id"], [])
+        if not devs:
+            story.append(Paragraph("<i>Belum ada capaian tercatat.</i>", muted))
+        else:
+            for d in devs[:6]:
+                story.append(Spacer(1, 4))
+                story.append(Paragraph(f"<font color='#C9A227'>■</font> <b>{d.get('category', '-')}</b> — {d.get('semester','-')} · {d.get('academic_year','-')}", pill))
+                if d.get("title"):
+                    story.append(Paragraph(f"<b>{d['title']}</b>", body))
+                if d.get("content"):
+                    story.append(Paragraph(d["content"], body))
+
+    story.append(Spacer(1, 20))
+    story.append(Paragraph("Jazakumullah khairan katsira atas dukungan Bapak/Ibu.", muted))
+
+    doc.build(story)
+    buf.seek(0)
+    filename = f"Laporan_{g['name'].replace(' ', '_')}_{month}.pdf"
+    return StreamingResponse(
+        buf, media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 # -----------------------------
