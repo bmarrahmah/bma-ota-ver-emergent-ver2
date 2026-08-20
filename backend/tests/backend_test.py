@@ -305,8 +305,212 @@ class TestSettings:
                     json={"institution_name": original_name, "tagline": "", "contact": "", "address": ""})
 
 
+# ---------- Users (multi-admin) ----------
+class TestUsers:
+    def test_list_users_includes_admin(self, session, auth):
+        r = session.get(f"{BASE_URL}/api/users")
+        assert r.status_code == 200
+        users = r.json()
+        assert isinstance(users, list) and len(users) >= 1
+        assert any(u["email"] == ADMIN_EMAIL for u in users)
+        # Response must not leak password_hash or _id
+        for u in users:
+            assert "password_hash" not in u
+            assert "_id" not in u
+            assert "id" in u and "email" in u
+
+    def test_create_user_and_duplicate_email(self, session, auth):
+        email = f"test_admin_{uuid.uuid4().hex[:6]}@example.com"
+        payload = {"email": email, "password": "TempPass1!", "name": "TEST Admin"}
+        r = session.post(f"{BASE_URL}/api/users", json=payload)
+        assert r.status_code == 200, r.text
+        u = r.json()
+        assert u["email"] == email
+        assert u["name"] == "TEST Admin"
+        assert u["role"] == "admin"
+        assert "password_hash" not in u
+        TEST_STATE["new_user_id"] = u["id"]
+        TEST_STATE["new_user_email"] = email
+        TEST_STATE["new_user_pw"] = "TempPass1!"
+
+        # Duplicate email should fail
+        r_dup = session.post(f"{BASE_URL}/api/users", json=payload)
+        assert r_dup.status_code == 400
+
+    def test_create_user_short_password(self, session, auth):
+        r = session.post(f"{BASE_URL}/api/users", json={
+            "email": f"short_{uuid.uuid4().hex[:6]}@example.com",
+            "password": "123", "name": "X"
+        })
+        assert r.status_code == 400
+
+    def test_update_user_name_and_avatar(self, session, auth):
+        uid = TEST_STATE["new_user_id"]
+        r = session.put(f"{BASE_URL}/api/users/{uid}",
+                        json={"name": "TEST Admin Updated", "avatar_url": "/api/files/x.png"})
+        assert r.status_code == 200
+        u = r.json()
+        assert u["name"] == "TEST Admin Updated"
+        assert u["avatar_url"] == "/api/files/x.png"
+        assert "password_hash" not in u
+
+    def test_reset_user_password_and_login(self, session, auth):
+        uid = TEST_STATE["new_user_id"]
+        email = TEST_STATE["new_user_email"]
+        new_pw = "NewReset123!"
+        r = session.post(f"{BASE_URL}/api/users/{uid}/reset-password", json={"new_password": new_pw})
+        assert r.status_code == 200
+        # short pw rejected
+        r_short = session.post(f"{BASE_URL}/api/users/{uid}/reset-password", json={"new_password": "abc"})
+        assert r_short.status_code == 400
+        # Login with new pw
+        login_sess = requests.Session()
+        r_login = login_sess.post(f"{BASE_URL}/api/auth/login", json={"email": email, "password": new_pw})
+        assert r_login.status_code == 200
+        d = r_login.json()
+        assert d["email"] == email
+        assert "avatar_url" in d  # login response includes avatar_url
+        TEST_STATE["new_user_pw"] = new_pw
+        TEST_STATE["new_user_token"] = d["token"]
+
+    def test_reset_password_unknown_user(self, session, auth):
+        r = session.post(f"{BASE_URL}/api/users/{uuid.uuid4()}/reset-password",
+                         json={"new_password": "abcdef"})
+        assert r.status_code == 404
+
+    def test_cannot_delete_own_account(self, session, auth):
+        # Find the admin's id
+        r = session.get(f"{BASE_URL}/api/auth/me")
+        me_id = r.json()["id"]
+        r_del = session.delete(f"{BASE_URL}/api/users/{me_id}")
+        assert r_del.status_code == 400
+
+
+# ---------- Change Password (uses temp user, does NOT touch primary admin) ----------
+class TestChangePassword:
+    def test_change_password_flow(self, session, auth):
+        # Use the temp user created above; login as them
+        email = TEST_STATE["new_user_email"]
+        pw = TEST_STATE["new_user_pw"]
+        s = requests.Session()
+        s.headers.update({"Content-Type": "application/json"})
+        rlog = s.post(f"{BASE_URL}/api/auth/login", json={"email": email, "password": pw})
+        assert rlog.status_code == 200
+        s.headers.update({"Authorization": f"Bearer {rlog.json()['token']}"})
+
+        # Wrong current pw
+        r_wrong = s.post(f"{BASE_URL}/api/auth/change-password",
+                         json={"current_password": "wrong-pw", "new_password": "AnotherPass1!"})
+        assert r_wrong.status_code == 400
+
+        # New pw too short
+        r_short = s.post(f"{BASE_URL}/api/auth/change-password",
+                        json={"current_password": pw, "new_password": "abc"})
+        assert r_short.status_code == 400
+
+        # Correct change
+        new_pw = "ChangedPass9!"
+        r_ok = s.post(f"{BASE_URL}/api/auth/change-password",
+                     json={"current_password": pw, "new_password": new_pw})
+        assert r_ok.status_code == 200
+
+        # Old pw rejected
+        r_old = requests.post(f"{BASE_URL}/api/auth/login",
+                              json={"email": email, "password": pw})
+        assert r_old.status_code == 401
+
+        # New pw works
+        r_new = requests.post(f"{BASE_URL}/api/auth/login",
+                             json={"email": email, "password": new_pw})
+        assert r_new.status_code == 200
+        assert "avatar_url" in r_new.json()
+        TEST_STATE["new_user_pw"] = new_pw
+
+
+# ---------- Settings logo_url ----------
+class TestSettingsLogo:
+    def test_settings_accepts_logo_url(self, session, auth):
+        # Get current
+        original = session.get(f"{BASE_URL}/api/settings").json()
+        logo = "/api/files/portal-ota/photos/test-logo.png"
+        payload = {
+            "institution_name": original.get("institution_name", "Yayasan"),
+            "tagline": original.get("tagline", ""),
+            "contact": original.get("contact", ""),
+            "address": original.get("address", ""),
+            "logo_url": logo,
+        }
+        r = session.put(f"{BASE_URL}/api/settings", json=payload)
+        assert r.status_code == 200
+        assert r.json().get("logo_url") == logo
+
+        # GET returns it
+        g = session.get(f"{BASE_URL}/api/settings").json()
+        assert g.get("logo_url") == logo
+        TEST_STATE["original_settings"] = {
+            "institution_name": original.get("institution_name", "Yayasan"),
+            "tagline": original.get("tagline", ""),
+            "contact": original.get("contact", ""),
+            "address": original.get("address", ""),
+            "logo_url": original.get("logo_url", ""),
+        }
+
+    def test_portal_includes_logo_url(self, session, auth):
+        token = TEST_STATE.get("portal_token")
+        assert token, "portal_token missing from state"
+        r = requests.get(f"{BASE_URL}/api/portal/{token}")
+        assert r.status_code == 200
+        d = r.json()
+        assert "institution" in d
+        assert "logo_url" in d["institution"]
+        # Non-empty since we just set it
+        assert d["institution"]["logo_url"].endswith("test-logo.png")
+
+
+# ---------- Login response includes avatar_url ----------
+class TestLoginAvatar:
+    def test_login_response_has_avatar_url(self, session):
+        r = session.post(f"{BASE_URL}/api/auth/login",
+                        json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD})
+        assert r.status_code == 200
+        d = r.json()
+        assert "avatar_url" in d  # field must be present (may be empty string)
+        assert isinstance(d["avatar_url"], str)
+
+
+# ---------- Delete last admin protection ----------
+class TestDeleteLastAdmin:
+    def test_last_admin_protection(self, session, auth):
+        """Ensure last-remaining-admin cannot be deleted.
+        Approach: delete all non-primary users, then attempt to delete the primary
+        as a different admin (impossible since only one is left) -> we validate the
+        rule by inspecting behavior: with N users, deleting all others should still
+        leave the primary undeletable via self-delete (400), and if only one user
+        remains, deleting any user (which would be self) returns 400.
+        """
+        # Fetch all users
+        users = session.get(f"{BASE_URL}/api/users").json()
+        me = session.get(f"{BASE_URL}/api/auth/me").json()
+        me_id = me["id"]
+        # Delete every non-primary user
+        for u in users:
+            if u["id"] != me_id:
+                session.delete(f"{BASE_URL}/api/users/{u['id']}")
+        # Now try to delete self -> should get 400 (either own-account or last-admin)
+        r = session.delete(f"{BASE_URL}/api/users/{me_id}")
+        assert r.status_code == 400
+        # Confirm still exactly 1 user
+        users_after = session.get(f"{BASE_URL}/api/users").json()
+        assert len(users_after) == 1
+        assert users_after[0]["id"] == me_id
+
+
 # ---------- Cleanup ----------
 def test_zzz_cleanup(session, auth):
+    # Restore settings
+    original = TEST_STATE.get("original_settings")
+    if original:
+        session.put(f"{BASE_URL}/api/settings", json=original)
     for k in ("guardian_id", "guardian_id_b", "guardian_id_c"):
         gid = TEST_STATE.get(k)
         if gid:
@@ -314,3 +518,7 @@ def test_zzz_cleanup(session, auth):
     cid = TEST_STATE.get("child_id")
     if cid:
         session.delete(f"{BASE_URL}/api/children/{cid}")
+    # Delete temp user if still present
+    uid = TEST_STATE.get("new_user_id")
+    if uid:
+        session.delete(f"{BASE_URL}/api/users/{uid}")

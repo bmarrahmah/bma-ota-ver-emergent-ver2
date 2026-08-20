@@ -1,0 +1,40 @@
+{
+  "summary": "Backend-only regression + new-feature testing for Portal Orang Tua Asuh. Extended /app/backend/tests/backend_test.py with 12 new tests covering: multi-admin CRUD (/api/users), duplicate email/short password validation, admin update (name + avatar_url), admin password reset + subsequent login, own-account delete protection, last-admin-standing protection, self change-password (correct/wrong/short flows with old-pw rejection + new-pw acceptance), PUT /api/settings logo_url round-trip, GET /api/portal/{token} exposes institution.logo_url, and POST /api/auth/login now returns avatar_url. All 33 tests pass (100%). Primary admin credential (bmarrahmah@gmail.com / Admin@2026) was not modified — change-password flow was tested against a disposable temp user which is cleaned up.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "DELETE /api/users/{id}", "issue": "The 'last remaining admin' guard is unreachable in practice because the own-account guard (400) fires first. Since every user is role='admin' and the only way to invoke DELETE is while authenticated, deleting the last remaining admin is always self-delete and short-circuits at the earlier check. The count<=1 branch is dead code today. Not a bug per se — the invariant holds — but the two checks should be documented or the order swapped for clarity."},
+      {"endpoint": "POST /api/users", "issue": "New users are hard-coded to role='admin'. UserCreateIn does not accept role, and there is no non-admin role in the codebase — matches the 'multi-admin' spec but worth confirming that non-admin roles are intentionally out-of-scope."},
+      {"endpoint": "PUT /api/users/{id}", "issue": "No authorization check that the caller is admin (all users are admin, so moot today) and no protection against a user updating another user's avatar/name. Acceptable for a single-role multi-admin app but should be revisited if roles are ever added."},
+      {"endpoint": "POST /api/auth/change-password", "issue": "No re-issue / invalidation of existing JWTs after password change. Old access tokens remain valid until natural expiry (7 days). Consider bumping a token_version claim if session invalidation is required."},
+      {"endpoint": "CORS middleware", "issue": "Still allow_origins=['*'] with allow_credentials=False — cookie set on login remains dead-weight; frontend uses Bearer token. Unchanged from iteration 1."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Optional: reorder or document the DELETE /api/users guards so the 'last admin' branch is reachable in tests / when multi-role is added later.",
+    "Optional: consider token_version claim to invalidate existing JWTs after change-password / reset-password.",
+    "Optional (carried from iteration 1): tighten CORS + brute-force lockout on /api/auth/login."
+  ],
+  "critical_code_review_comments": [
+    "server.py is now 1360+ lines — increasingly overdue for a router/model/seed split.",
+    "list_users returns all users sorted by created_at without pagination — fine at current scale.",
+    "UserUpdateIn allows avatar_url and name to be set to empty string (excluded only if None due to `if v is not None`) — acceptable; empty string is a legitimate clear-value.",
+    "reset_user_password does not require the acting user to differ from the target — a compromised session can silently rotate any admin's password. Add audit logging.",
+    "seed_admin_and_data still updates the seeded admin's password on every restart if env password differs — idempotent as documented.",
+    "Login response now leaks avatar_url (empty string when missing) which matches the requested feature — consistent with GET /api/auth/me shape."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py"
+  ],
+  "success_rate": {"backend": "100% (33/33)", "frontend": "not tested (backend-only request)"},
+  "test_credentials": "Admin: bmarrahmah@gmail.com / Admin@2026 (unchanged; new tests use disposable temp users)",
+  "seed_data_creation": "No new seed. Tests create a TEST-prefixed admin user + TEST guardians/children/donations/developments/reports which are cleaned up by test_zzz_cleanup. TestDeleteLastAdmin deletes every non-primary user (including the temp admin) as part of its assertion; cleanup is idempotent.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run with: `cd /app && python -m pytest backend/tests/backend_test.py -n 0 -v`. TEST_STATE is shared across classes so xdist parallel is still not supported. New suites appended after TestSettings: TestUsers, TestChangePassword, TestSettingsLogo, TestLoginAvatar, TestDeleteLastAdmin. TestDeleteLastAdmin must run before final cleanup because it deletes all non-primary users. Primary admin password is never modified by the suite."
+}

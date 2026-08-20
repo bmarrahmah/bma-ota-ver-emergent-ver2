@@ -223,6 +223,27 @@ class SettingsIn(BaseModel):
     tagline: Optional[str] = ""
     contact: Optional[str] = ""
     address: Optional[str] = ""
+    logo_url: Optional[str] = ""
+
+
+class UserCreateIn(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
+
+
+class UserUpdateIn(BaseModel):
+    name: Optional[str] = None
+    avatar_url: Optional[str] = None
+
+
+class ChangePasswordIn(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class ResetPasswordIn(BaseModel):
+    new_password: str
 
 
 # -----------------------------
@@ -268,7 +289,13 @@ async def login(body: LoginIn, response: Response):
     response.set_cookie(
         "access_token", token, httponly=True, secure=True, samesite="none", max_age=60 * 60 * 24 * 7, path="/"
     )
-    return {"id": user["id"], "email": email, "name": user.get("name", "Admin"), "token": token}
+    return {
+        "id": user["id"],
+        "email": email,
+        "name": user.get("name", "Admin"),
+        "avatar_url": user.get("avatar_url", ""),
+        "token": token,
+    }
 
 
 @api.post("/auth/logout")
@@ -280,6 +307,83 @@ async def logout(response: Response, user=Depends(get_current_user)):
 @api.get("/auth/me")
 async def me(user=Depends(get_current_user)):
     return user
+
+
+@api.post("/auth/change-password")
+async def change_password(body: ChangePasswordIn, user=Depends(get_current_user)):
+    full = await db.users.find_one({"id": user["id"]})
+    if not full or not verify_password(body.current_password, full.get("password_hash", "")):
+        raise HTTPException(400, "Kata sandi saat ini salah")
+    if len(body.new_password) < 6:
+        raise HTTPException(400, "Kata sandi baru minimal 6 karakter")
+    await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": hash_password(body.new_password)}})
+    return {"ok": True}
+
+
+@api.get("/users")
+async def list_users(user=Depends(get_current_user)):
+    docs = await db.users.find().sort("created_at", 1).to_list(200)
+    for d in docs:
+        strip_mongo(d)
+        d.pop("password_hash", None)
+    return docs
+
+
+@api.post("/users")
+async def create_user_endpoint(body: UserCreateIn, user=Depends(get_current_user)):
+    email = body.email.lower()
+    if len(body.password) < 6:
+        raise HTTPException(400, "Kata sandi minimal 6 karakter")
+    exists = await db.users.find_one({"email": email})
+    if exists:
+        raise HTTPException(400, "Email sudah terdaftar")
+    doc = {
+        "id": str(uuid.uuid4()),
+        "email": email,
+        "password_hash": hash_password(body.password),
+        "name": body.name,
+        "role": "admin",
+        "avatar_url": "",
+        "created_at": now_iso(),
+    }
+    await db.users.insert_one(doc)
+    strip_mongo(doc)
+    doc.pop("password_hash", None)
+    return doc
+
+
+@api.put("/users/{uid}")
+async def update_user(uid: str, body: UserUpdateIn, user=Depends(get_current_user)):
+    upd = {k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None}
+    if upd:
+        await db.users.update_one({"id": uid}, {"$set": upd})
+    u = await db.users.find_one({"id": uid})
+    if not u:
+        raise HTTPException(404, "Pengguna tidak ditemukan")
+    strip_mongo(u)
+    u.pop("password_hash", None)
+    return u
+
+
+@api.delete("/users/{uid}")
+async def delete_user(uid: str, user=Depends(get_current_user)):
+    if uid == user["id"]:
+        raise HTTPException(400, "Tidak dapat menghapus akun sendiri")
+    count = await db.users.count_documents({})
+    if count <= 1:
+        raise HTTPException(400, "Minimal harus ada satu akun admin")
+    await db.users.delete_one({"id": uid})
+    return {"ok": True}
+
+
+@api.post("/users/{uid}/reset-password")
+async def reset_user_password(uid: str, body: ResetPasswordIn, user=Depends(get_current_user)):
+    if len(body.new_password) < 6:
+        raise HTTPException(400, "Kata sandi minimal 6 karakter")
+    r = await db.users.update_one({"id": uid}, {"$set": {"password_hash": hash_password(body.new_password)}})
+    if r.matched_count == 0:
+        raise HTTPException(404, "Pengguna tidak ditemukan")
+    return {"ok": True}
 
 
 # -----------------------------
@@ -1007,6 +1111,7 @@ async def portal_view(token: str):
             "name": settings.get("institution_name", "Yayasan Insan Peduli Umat"),
             "tagline": settings.get("tagline", ""),
             "contact": settings.get("contact", ""),
+            "logo_url": settings.get("logo_url", ""),
         },
         "summary": {
             "children_count": len(children),

@@ -104,8 +104,10 @@ export default function AdminLayout() {
               <div className="text-sm font-semibold text-[var(--pota-text)]">{user?.name || "Admin"}</div>
               <div className="text-xs text-[var(--pota-text-muted)]">{user?.email}</div>
             </div>
-            <div className="w-10 h-10 rounded-full bg-[var(--pota-green)] text-[#F5E7A6] flex items-center justify-center font-semibold">
-              {(user?.name || "A").charAt(0)}
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-[var(--pota-green)] text-[#F5E7A6] flex items-center justify-center font-semibold border border-[var(--pota-border)]">
+              {user?.avatar_url ? (
+                <img src={user.avatar_url.startsWith('/api') ? `${process.env.REACT_APP_BACKEND_URL}${user.avatar_url}` : user.avatar_url} alt="" className="w-full h-full object-cover" />
+              ) : (user?.name || "A").charAt(0)}
             </div>
           </div>
         </header>
