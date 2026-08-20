@@ -144,7 +144,7 @@ function MyAccountTab() {
         <div className="font-display text-xl text-[var(--pota-green)]">Data Akun Saya</div>
 
         <div className="flex items-center gap-4">
-          <div className="w-20 h-20 rounded-full overflow-hidden bg-[var(--pota-green)] text-[#F5E7A6] flex items-center justify-center text-2xl font-display border border-[var(--pota-border)]">
+          <div className="w-20 h-20 rounded-full overflow-hidden bg-[var(--pota-green)] text-[#DCEDC8] flex items-center justify-center text-2xl font-display border border-[var(--pota-border)]">
             {f.avatar_url ? <img src={toImgSrc(f.avatar_url)} alt="" className="w-full h-full object-cover" /> : (user?.name || "A").charAt(0)}
           </div>
           <button data-testid="btn-upload-avatar" type="button" onClick={() => fileRef.current.click()} className="inline-flex items-center gap-2 border border-[var(--pota-border)] px-3 py-2 rounded-lg text-sm hover:border-[var(--pota-gold)]">
@@ -245,7 +245,7 @@ function UsersTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {rows.map((u) => (
           <div key={u.id} className="pota-card p-4 flex items-start gap-3" data-testid={`card-user-${u.id}`}>
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-[var(--pota-green)] text-[#F5E7A6] flex items-center justify-center font-display flex-shrink-0">
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-[var(--pota-green)] text-[#DCEDC8] flex items-center justify-center font-display flex-shrink-0">
               {u.avatar_url ? <img src={toImgSrc(u.avatar_url)} alt="" className="w-full h-full object-cover" /> : (u.name || "A").charAt(0)}
             </div>
             <div className="flex-1 min-w-0">

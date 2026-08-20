@@ -144,7 +144,7 @@ export default function PerkembanganPage() {
               <AccordionItem value={name} className="border-none">
                 <AccordionTrigger className="px-5 hover:no-underline">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#FCF7E8] text-[#8C6D14] border border-[#E8D38A] flex items-center justify-center font-display">{name[0]}</div>
+                    <div className="w-10 h-10 rounded-xl bg-[#F1F8E9] text-[#33691E] border border-[#C5E1A5] flex items-center justify-center font-display">{name[0]}</div>
                     <div className="text-left">
                       <div className="font-display text-lg text-[var(--pota-green)]">{name}</div>
                       <div className="text-xs text-[var(--pota-text-muted)]">{list.length} capaian</div>

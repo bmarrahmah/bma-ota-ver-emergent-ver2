@@ -161,7 +161,7 @@ export default function LaporanPage() {
                 <button data-testid={`btn-edit-${r.guardian_id}`} onClick={()=>openEdit(r)} className="flex-1 inline-flex items-center justify-center gap-1 border text-xs font-semibold py-2 rounded-lg">
                   <Edit3 className="w-3.5 h-3.5" /> Ringkasan
                 </button>
-                <button data-testid={`btn-pdf-${r.guardian_id}`} onClick={()=>downloadPdf(r)} title="Unduh PDF" className="inline-flex items-center justify-center gap-1 border text-xs font-semibold py-2 px-2.5 rounded-lg text-[#8C6D14] border-[#E8D38A] bg-[#FCF7E8] hover:bg-[#F5EBC8]">
+                <button data-testid={`btn-pdf-${r.guardian_id}`} onClick={()=>downloadPdf(r)} title="Unduh PDF" className="inline-flex items-center justify-center gap-1 border text-xs font-semibold py-2 px-2.5 rounded-lg text-[#33691E] border-[#C5E1A5] bg-[#F1F8E9] hover:bg-[#DCEDC8]">
                   <FileDown className="w-3.5 h-3.5" /> PDF
                 </button>
               </div>

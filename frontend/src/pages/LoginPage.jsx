@@ -32,12 +32,12 @@ export default function LoginPage() {
     <div className="min-h-screen grid lg:grid-cols-2">
       <div className="hidden lg:flex pota-hero-portal p-12 relative overflow-hidden flex-col justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-[#C9A227]/15 border border-[#C9A227]/40 flex items-center justify-center">
-            <Sparkles className="w-6 h-6 text-[#D4AF37]" />
+          <div className="w-11 h-11 rounded-xl bg-[#7CB342]/15 border border-[#7CB342]/40 flex items-center justify-center">
+            <Sparkles className="w-6 h-6 text-[#9CCC65]" />
           </div>
           <div>
             <div className="font-display text-xl">Portal OTA</div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#D4AF37]">Orang Tua Asuh</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[#9CCC65]">Orang Tua Asuh</div>
           </div>
         </div>
         <div className="max-w-md">
@@ -58,7 +58,7 @@ export default function LoginPage() {
         <form onSubmit={submit} className="w-full max-w-md" data-testid="login-form">
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <div className="w-11 h-11 rounded-xl bg-[var(--pota-green)] flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-[#D4AF37]" />
+              <Sparkles className="w-6 h-6 text-[#9CCC65]" />
             </div>
             <div>
               <div className="font-display text-xl text-[var(--pota-green)]">Portal OTA</div>

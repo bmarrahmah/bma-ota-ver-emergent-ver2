@@ -30,7 +30,7 @@ const NavItems = ({ onClick }) => (
         className={({ isActive }) =>
           `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
             isActive
-              ? "bg-white/10 text-[#F5E7A6] border-l-2 border-[#C9A227] pl-[10px]"
+              ? "bg-white/10 text-[#DCEDC8] border-l-2 border-[#7CB342] pl-[10px]"
               : "text-[#C7D6CE] hover:bg-white/5 hover:text-white"
           }`
         }
@@ -46,12 +46,12 @@ const SidebarInner = ({ onNav, onLogout }) => (
   <div className="pota-sidebar flex flex-col h-full w-64">
     <div className="p-5 border-b border-white/10">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-[#C9A227]/15 border border-[#C9A227]/30 flex items-center justify-center">
-          <Sparkles className="w-5 h-5 text-[#D4AF37]" />
+        <div className="w-10 h-10 rounded-xl bg-[#7CB342]/15 border border-[#7CB342]/30 flex items-center justify-center">
+          <Sparkles className="w-5 h-5 text-[#9CCC65]" />
         </div>
         <div>
           <div className="font-display text-lg leading-none text-white">Portal OTA</div>
-          <div className="text-[10px] uppercase tracking-[0.18em] text-[#C9A227] mt-1">Orang Tua Asuh</div>
+          <div className="text-[10px] uppercase tracking-[0.18em] text-[#7CB342] mt-1">Orang Tua Asuh</div>
         </div>
       </div>
     </div>
@@ -105,7 +105,7 @@ export default function AdminLayout() {
               <div className="text-sm font-semibold text-[var(--pota-text)]">{user?.name || "Admin"}</div>
               <div className="text-xs text-[var(--pota-text-muted)]">{user?.email}</div>
             </div>
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-[var(--pota-green)] text-[#F5E7A6] flex items-center justify-center font-semibold border border-[var(--pota-border)]">
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-[var(--pota-green)] text-[#DCEDC8] flex items-center justify-center font-semibold border border-[var(--pota-border)]">
               {user?.avatar_url ? (
                 <img src={user.avatar_url.startsWith('/api') ? `${process.env.REACT_APP_BACKEND_URL}${user.avatar_url}` : user.avatar_url} alt="" className="w-full h-full object-cover" />
               ) : (user?.name || "A").charAt(0)}

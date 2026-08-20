@@ -5,19 +5,19 @@
 @tailwind utilities;
 
 :root {
-  --pota-green: #0B3D2E;
-  --pota-green-2: #123F32;
-  --pota-green-3: #164A3A;
-  --pota-green-deep: #07261D;
-  --pota-gold: #C9A227;
-  --pota-gold-bright: #D4AF37;
-  --pota-gold-soft: #FCF7E8;
-  --pota-gold-border: #E8D38A;
-  --pota-canvas: #F8FAF8;
-  --pota-surface: #F2F5F3;
-  --pota-text: #111E1A;
-  --pota-text-muted: #5C6F67;
-  --pota-border: #E2E8E4;
+  --pota-green: #0F4A2A;
+  --pota-green-2: #1B5E20;
+  --pota-green-3: #2E7D32;
+  --pota-green-deep: #093820;
+  --pota-gold: #7CB342;
+  --pota-gold-bright: #9CCC65;
+  --pota-gold-soft: #F1F8E9;
+  --pota-gold-border: #C5E1A5;
+  --pota-canvas: #F7FAF6;
+  --pota-surface: #EEF5EA;
+  --pota-text: #0B2416;
+  --pota-text-muted: #4E6656;
+  --pota-border: #DDE6DA;
 }
 
 @layer base {
@@ -59,15 +59,15 @@ html, body, #root {
 .font-serif-luxe { font-family: 'Rubik', 'Poppins', system-ui, sans-serif; font-weight: 700; letter-spacing: -0.01em; }
 
 .pota-sidebar {
-  background: linear-gradient(180deg, #0B3D2E 0%, #07261D 100%);
+  background: linear-gradient(180deg, #0F4A2A 0%, #093820 100%);
   color: #E7EFEA;
 }
 
 .pota-hero-portal {
   background:
-    radial-gradient(1200px 400px at 90% -20%, rgba(201,162,39,0.18), transparent 60%),
-    linear-gradient(135deg, #0B3D2E 0%, #123F32 45%, #164A3A 100%);
-  color: #F6EFD9;
+    radial-gradient(1200px 400px at 90% -20%, rgba(124,179,66,0.22), transparent 60%),
+    linear-gradient(135deg, #0F4A2A 0%, #1B5E20 45%, #2E7D32 100%);
+  color: #E8F5E0;
 }
 
 .gold-divider {
@@ -92,7 +92,7 @@ html, body, #root {
 
 .pota-pill-gold {
   background: var(--pota-gold-soft);
-  color: #7A5B14;
+  color: #33691E;
   border: 1px solid var(--pota-gold-border);
   padding: 2px 10px;
   border-radius: 999px;

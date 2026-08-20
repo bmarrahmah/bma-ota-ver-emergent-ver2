@@ -267,7 +267,7 @@ export default function DonasiPage() {
                   />
                   <Bar dataKey="amount" radius={[0, 6, 6, 0]}>
                     {otaAgg.map((_, i) => (
-                      <Cell key={i} fill={i === 0 ? "#C9A227" : i === 1 ? "#123F32" : "#164A3A"} fillOpacity={i === 0 ? 1 : 0.85 - i * 0.05} />
+                      <Cell key={i} fill={i === 0 ? "#7CB342" : i === 1 ? "#2E7D32" : "#388E3C"} fillOpacity={i === 0 ? 1 : 0.85 - i * 0.05} />
                     ))}
                   </Bar>
                 </BarChart>

@@ -236,6 +236,11 @@ class ReportIn(BaseModel):
     status: Literal["Terlapor", "Belum Terlapor"] = "Terlapor"
 
 
+class TargetIn(BaseModel):
+    month: str
+    amount: float
+
+
 class SettingsIn(BaseModel):
     institution_name: str
     tagline: Optional[str] = ""
@@ -551,8 +556,8 @@ async def report_pdf_summary(month: str, user=Depends(get_current_user)):
         title=f"Rekap Laporan {period_label}",
     )
     styles = getSampleStyleSheet()
-    GREEN = colors.HexColor("#0B3D2E")
-    GOLD = colors.HexColor("#C9A227")
+    GREEN = colors.HexColor("#0F4A2A")
+    GOLD = colors.HexColor("#7CB342")
     MUTED = colors.HexColor("#5C6F67")
     BG_SOFT = colors.HexColor("#F8FAF8")
     ROW_ALT = colors.HexColor("#FBFDFB")
@@ -684,8 +689,8 @@ async def report_pdf(guardian_id: str, month: str, user=Depends(get_current_user
         title=f"Laporan {g['name']} - {period_label}",
     )
     styles = getSampleStyleSheet()
-    GREEN = colors.HexColor("#0B3D2E")
-    GOLD = colors.HexColor("#C9A227")
+    GREEN = colors.HexColor("#0F4A2A")
+    GOLD = colors.HexColor("#7CB342")
     MUTED = colors.HexColor("#5C6F67")
 
     h1 = ParagraphStyle("h1", parent=styles["Title"], textColor=GREEN, fontName="Helvetica-Bold", fontSize=22, leading=26, spaceAfter=6)
@@ -740,7 +745,7 @@ async def report_pdf(guardian_id: str, month: str, user=Depends(get_current_user
         else:
             for d in devs[:6]:
                 story.append(Spacer(1, 4))
-                story.append(Paragraph(f"<font color='#C9A227'>■</font> <b>{d.get('category', '-')}</b> — {d.get('semester','-')} · {d.get('academic_year','-')}", pill))
+                story.append(Paragraph(f"<font color='#7CB342'>■</font> <b>{d.get('category', '-')}</b> — {d.get('semester','-')} · {d.get('academic_year','-')}", pill))
                 if d.get("title"):
                     story.append(Paragraph(f"<b>{d['title']}</b>", body))
                 if d.get("content"):
@@ -1135,6 +1140,33 @@ async def delete_report(rid: str, user=Depends(get_current_user)):
 # -----------------------------
 # Settings
 # -----------------------------
+@api.get("/donation-target")
+async def get_donation_target(month: str, user=Depends(get_current_user)):
+    doc = await db.donation_targets.find_one({"month": month})
+    donations = await db.donations.find({"donation_month": month}).to_list(2000)
+    collected = sum(d.get("amount", 0) for d in donations)
+    target = doc.get("amount", 0) if doc else 0
+    return {
+        "month": month,
+        "target": target,
+        "collected": collected,
+        "count": len(donations),
+        "percentage": round((collected / target) * 100, 1) if target > 0 else 0,
+        "remaining": max(0, target - collected),
+    }
+
+
+@api.put("/donation-target")
+async def put_donation_target(body: TargetIn, user=Depends(get_current_user)):
+    await db.donation_targets.update_one(
+        {"month": body.month},
+        {"$set": {"amount": body.amount, "updated_at": now_iso()}},
+        upsert=True,
+    )
+    await log_activity(user, "update", "settings", f"target-{body.month}", f"Target {body.month} · Rp {int(body.amount):,}".replace(",", "."))
+    return {"month": body.month, "amount": body.amount}
+
+
 @api.get("/settings")
 async def get_settings(user=Depends(get_current_user)):
     s = await db.settings.find_one({"id": "main"})

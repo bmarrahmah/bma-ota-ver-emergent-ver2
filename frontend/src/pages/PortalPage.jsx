@@ -39,13 +39,13 @@ export default function PortalPage() {
       <div className="pota-hero-portal border-b-4 border-[var(--pota-gold)]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl overflow-hidden bg-[#C9A227]/15 border border-[#C9A227]/40 flex items-center justify-center">
+            <div className="w-11 h-11 rounded-xl overflow-hidden bg-[#7CB342]/15 border border-[#7CB342]/40 flex items-center justify-center">
               {institution.logo_url ? (
                 <img src={institution.logo_url.startsWith('/api') ? `${process.env.REACT_APP_BACKEND_URL}${institution.logo_url}` : institution.logo_url} alt="Logo" className="w-full h-full object-cover" />
-              ) : <Sparkles className="w-6 h-6 text-[#D4AF37]" />}
+              ) : <Sparkles className="w-6 h-6 text-[#9CCC65]" />}
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-[0.2em] text-[#D4AF37]">Portal Orang Tua Asuh</div>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-[#9CCC65]">Portal Orang Tua Asuh</div>
               <div className="font-display text-lg">{institution.name}</div>
             </div>
           </div>

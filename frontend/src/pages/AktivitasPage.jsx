@@ -112,7 +112,7 @@ export default function AktivitasPage() {
             const Icon = entityIcons[r.entity] || FileText;
             return (
               <div key={r.id} data-testid={`row-activity-${r.id}`} className="p-4 flex items-start gap-3">
-                <div className="w-9 h-9 rounded-lg bg-[#FCF7E8] border border-[#E8D38A] text-[#8C6D14] flex items-center justify-center flex-shrink-0">
+                <div className="w-9 h-9 rounded-lg bg-[#F1F8E9] border border-[#C5E1A5] text-[#33691E] flex items-center justify-center flex-shrink-0">
                   <Icon className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
