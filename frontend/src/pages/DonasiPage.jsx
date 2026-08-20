@@ -105,7 +105,7 @@ export default function DonasiPage() {
       m[d.guardian_id].amount += d.amount || 0;
       m[d.guardian_id].count += 1;
     });
-    return Object.values(m).sort((a, b) => b.amount - a.amount);
+    return Object.values(m).sort((a, b) => b.amount - a.amount).slice(0, 5);
   }, [filtered]);
 
   const exportCSV = () => {
@@ -133,6 +133,29 @@ export default function DonasiPage() {
     toast.success(`${filtered.length} donasi diekspor ke CSV`);
   };
 
+  const exportPDF = async () => {
+    if (filtered.length === 0) return toast.error("Tidak ada data untuk diekspor");
+    try {
+      const t = localStorage.getItem("pota_token");
+      const params = new URLSearchParams();
+      if (fMonth !== "all") params.set("month", fMonth);
+      if (fGuardian !== "all") params.set("guardian_id", fGuardian);
+      if (fMethod !== "all") params.set("method", fMethod);
+      const url = `${process.env.REACT_APP_BACKEND_URL}/api/donations/pdf?${params.toString()}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${t}` } });
+      if (!res.ok) throw new Error("Gagal mengunduh PDF");
+      const blob = await res.blob();
+      const dl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const suffix = fMonth !== "all" ? `_${fMonth}` : `_${new Date().toISOString().slice(0, 10)}`;
+      a.href = dl;
+      a.download = `Rekap_Donasi${suffix}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(dl);
+      toast.success("PDF donasi diunduh");
+    } catch (e) { toast.error(e.message || "Gagal mengunduh"); }
+  };
+
   const compactIDR = (n) => {
     if (!n) return "0";
     if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}M`;
@@ -153,6 +176,9 @@ export default function DonasiPage() {
           <div className="flex flex-wrap gap-2">
             <button data-testid="btn-export-donasi" onClick={exportCSV} className="inline-flex items-center gap-2 border border-[var(--pota-border)] hover:border-[var(--pota-gold)] text-[var(--pota-green)] px-4 py-2.5 rounded-xl text-sm font-semibold bg-white">
               <FileDown className="w-4 h-4" /> Ekspor CSV
+            </button>
+            <button data-testid="btn-export-pdf-donasi" onClick={exportPDF} className="inline-flex items-center gap-2 text-[#33691E] border border-[#C5E1A5] bg-[#F1F8E9] hover:bg-[#DCEDC8] px-4 py-2.5 rounded-xl text-sm font-semibold">
+              <FileDown className="w-4 h-4" /> Ekspor PDF
             </button>
             <DialogTrigger asChild>
               <button data-testid="btn-add-donasi" className="inline-flex items-center gap-2 bg-[var(--pota-green)] text-white px-4 py-2.5 rounded-xl text-sm font-semibold">
@@ -244,7 +270,7 @@ export default function DonasiPage() {
           <div className="pota-card p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <div className="text-[11px] tracking-[0.16em] uppercase text-[var(--pota-text-muted)] font-semibold inline-flex items-center gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Kontribusi Per Orang Tua Asuh</div>
+                <div className="text-[11px] tracking-[0.16em] uppercase text-[var(--pota-text-muted)] font-semibold inline-flex items-center gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Top 5 Kontribusi Orang Tua Asuh</div>
                 <div className="font-display text-xl text-[var(--pota-green)] mt-1">
                   {fMonth === "all" ? "Semua Periode" : formatMonth(fMonth)}
                 </div>

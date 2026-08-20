@@ -989,6 +989,215 @@ async def delete_relation(rid: str, user=Depends(get_current_user)):
 # -----------------------------
 # Donations
 # -----------------------------
+@api.get("/donations/pdf")
+async def donations_pdf(
+    month: Optional[str] = None,
+    guardian_id: Optional[str] = None,
+    method: Optional[str] = None,
+    user=Depends(get_current_user),
+):
+    q = {}
+    if month:
+        q["donation_month"] = month
+    if guardian_id:
+        q["guardian_id"] = guardian_id
+    if method:
+        q["method"] = method
+    docs = await db.donations.find(q).sort("donation_date", -1).to_list(5000)
+    guardians = {g["id"]: g for g in await db.guardians.find().to_list(2000)}
+    settings = await db.settings.find_one({"id": "main"}) or {}
+    target_doc = None
+    if month:
+        target_doc = await db.donation_targets.find_one({"month": month})
+
+    names_id = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"]
+
+    def fmt_month(ym):
+        if not ym: return "-"
+        y, m = ym.split("-")
+        return f"{names_id[int(m)-1]} {y}"
+
+    def fmt_idr(n):
+        try: return f"Rp {int(n):,}".replace(",", ".")
+        except Exception: return "Rp 0"
+
+    period_label = fmt_month(month) if month else "Semua Periode"
+    guardian_label = guardians.get(guardian_id, {}).get("name") if guardian_id else "Semua Orang Tua Asuh"
+    method_label = method if method else "Semua Metode"
+
+    total = sum(d.get("amount", 0) for d in docs)
+    per_ota = {}
+    for d in docs:
+        gid = d["guardian_id"]
+        if gid not in per_ota:
+            per_ota[gid] = {"name": guardians.get(gid, {}).get("name", "-"), "amount": 0, "count": 0}
+        per_ota[gid]["amount"] += d.get("amount", 0)
+        per_ota[gid]["count"] += 1
+    top5 = sorted(per_ota.values(), key=lambda x: x["amount"], reverse=True)[:5]
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        leftMargin=1.6*cm, rightMargin=1.6*cm, topMargin=2*cm, bottomMargin=1.8*cm,
+        title=f"Rekap Donasi {period_label}",
+    )
+    styles = getSampleStyleSheet()
+    GREEN = colors.HexColor("#0F4A2A")
+    GOLD = colors.HexColor("#7CB342")
+    MUTED = colors.HexColor("#4E6656")
+    BG_SOFT = colors.HexColor("#F7FAF6")
+    ROW_ALT = colors.HexColor("#F1F8E9")
+
+    h1 = ParagraphStyle("h1", parent=styles["Title"], textColor=GREEN, fontName="Helvetica-Bold", fontSize=22, leading=26, spaceAfter=4, alignment=0)
+    over = ParagraphStyle("over", parent=styles["Normal"], textColor=GOLD, fontName="Helvetica-Bold", fontSize=9, leading=12, spaceAfter=2)
+    h2 = ParagraphStyle("h2", parent=styles["Heading2"], textColor=GREEN, fontName="Helvetica-Bold", fontSize=13, leading=16, spaceBefore=14, spaceAfter=6)
+    body = ParagraphStyle("body", parent=styles["Normal"], textColor=colors.HexColor("#0B2416"), fontName="Helvetica", fontSize=10, leading=14)
+    muted = ParagraphStyle("muted", parent=styles["Normal"], textColor=MUTED, fontName="Helvetica", fontSize=9, leading=12)
+
+    story = []
+    story.append(Paragraph("REKAP DONASI", over))
+    story.append(Paragraph(settings.get("institution_name", "Yayasan Insan Peduli Umat"), h1))
+    if settings.get("tagline"):
+        story.append(Paragraph(settings["tagline"], muted))
+    story.append(Spacer(1, 12))
+
+    info = Table([
+        [Paragraph("<b>Periode</b>", body), Paragraph(period_label, body),
+         Paragraph("<b>Orang Tua Asuh</b>", body), Paragraph(guardian_label or "-", body)],
+        [Paragraph("<b>Metode</b>", body), Paragraph(method_label, body),
+         Paragraph("<b>Tanggal Cetak</b>", body), Paragraph(datetime.now(timezone.utc).strftime("%d %B %Y"), body)],
+    ], colWidths=[2.6*cm, 5*cm, 3.4*cm, 6.4*cm])
+    info.setStyle(TableStyle([
+        ("BOX", (0,0), (-1,-1), 0.5, colors.HexColor("#DDE6DA")),
+        ("INNERGRID", (0,0), (-1,-1), 0.25, colors.HexColor("#DDE6DA")),
+        ("BACKGROUND", (0,0), (0,-1), BG_SOFT),
+        ("BACKGROUND", (2,0), (2,-1), BG_SOFT),
+        ("LEFTPADDING", (0,0), (-1,-1), 8), ("RIGHTPADDING", (0,0), (-1,-1), 8),
+        ("TOPPADDING", (0,0), (-1,-1), 6), ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+    ]))
+    story.append(info)
+
+    # Summary
+    story.append(Spacer(1, 10))
+    target_amount = float((target_doc or {}).get("amount", 0)) if target_doc else 0
+    pct = round((total/target_amount)*100, 1) if target_amount > 0 else 0
+    stats_row_1 = [
+        Paragraph("<b>Total Terkumpul</b>", muted),
+        Paragraph("<b>Jumlah Transaksi</b>", muted),
+        Paragraph("<b>Target Bulan Ini</b>" if month else "<b>Rata-rata Transaksi</b>", muted),
+        Paragraph("<b>Pencapaian</b>" if month else "<b>Orang Tua Asuh</b>", muted),
+    ]
+    if month:
+        stats_row_2 = [
+            Paragraph(f"<font size=14 color='#0F4A2A'><b>{fmt_idr(total)}</b></font>", body),
+            Paragraph(f"<font size=16 color='#0F4A2A'><b>{len(docs)}</b></font>", body),
+            Paragraph(f"<font size=13 color='#0F4A2A'><b>{fmt_idr(target_amount) if target_amount else '-'}</b></font>", body),
+            Paragraph(f"<font size=16 color='#{'2E7D32' if pct >= 100 else '0F4A2A'}'><b>{pct}%</b></font>" if target_amount else "-", body),
+        ]
+    else:
+        avg = total / len(docs) if docs else 0
+        stats_row_2 = [
+            Paragraph(f"<font size=14 color='#0F4A2A'><b>{fmt_idr(total)}</b></font>", body),
+            Paragraph(f"<font size=16 color='#0F4A2A'><b>{len(docs)}</b></font>", body),
+            Paragraph(f"<font size=13 color='#0F4A2A'><b>{fmt_idr(avg)}</b></font>", body),
+            Paragraph(f"<font size=16 color='#0F4A2A'><b>{len(per_ota)}</b></font>", body),
+        ]
+    stats_tbl = Table([stats_row_1, stats_row_2], colWidths=[4.2*cm]*4)
+    stats_tbl.setStyle(TableStyle([
+        ("BOX", (0,0), (-1,-1), 0.5, colors.HexColor("#DDE6DA")),
+        ("LINEAFTER", (0,0), (-2,-1), 0.25, colors.HexColor("#DDE6DA")),
+        ("BACKGROUND", (0,0), (-1,0), BG_SOFT),
+        ("LEFTPADDING", (0,0), (-1,-1), 10), ("RIGHTPADDING", (0,0), (-1,-1), 10),
+        ("TOPPADDING", (0,0), (-1,-1), 8), ("BOTTOMPADDING", (0,0), (-1,-1), 8),
+    ]))
+    story.append(stats_tbl)
+
+    # Top 5 kontribusi
+    if top5:
+        story.append(Paragraph("Top 5 Kontribusi Orang Tua Asuh", h2))
+        max_amt = top5[0]["amount"] or 1
+        top_data = [[Paragraph("<b>Peringkat</b>", body), Paragraph("<b>Orang Tua Asuh</b>", body),
+                     Paragraph("<b>Kontribusi</b>", body), Paragraph("<b>Transaksi</b>", body)]]
+        white_header = ParagraphStyle("wh", parent=body, textColor=colors.white, fontName="Helvetica-Bold")
+        top_data[0] = [Paragraph(x.text, white_header) for x in top_data[0]]
+        for i, r in enumerate(top5, 1):
+            share = round((r["amount"]/max_amt)*100)
+            bar = "█" * max(1, share // 8)
+            top_data.append([
+                Paragraph(f"#{i}", body),
+                Paragraph(r["name"], body),
+                Paragraph(f"<b>{fmt_idr(r['amount'])}</b> <font color='#7CB342'>{bar}</font>", body),
+                Paragraph(str(r["count"]), body),
+            ])
+        top_tbl = Table(top_data, colWidths=[1.5*cm, 5.5*cm, 8*cm, 2.4*cm], repeatRows=1)
+        top_style = [
+            ("BACKGROUND", (0,0), (-1,0), GREEN),
+            ("LINEBELOW", (0,0), (-1,0), 1.5, GOLD),
+            ("BOX", (0,0), (-1,-1), 0.5, colors.HexColor("#DDE6DA")),
+            ("INNERGRID", (0,0), (-1,-1), 0.25, colors.HexColor("#EEF5EA")),
+            ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+            ("LEFTPADDING", (0,0), (-1,-1), 6), ("RIGHTPADDING", (0,0), (-1,-1), 6),
+            ("TOPPADDING", (0,0), (-1,-1), 6), ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+        ]
+        for r_idx in range(1, len(top_data)):
+            if r_idx % 2 == 0:
+                top_style.append(("BACKGROUND", (0, r_idx), (-1, r_idx), ROW_ALT))
+        top_tbl.setStyle(TableStyle(top_style))
+        story.append(top_tbl)
+
+    # Detail transaksi
+    story.append(Paragraph("Detail Transaksi Donasi", h2))
+    if not docs:
+        story.append(Paragraph("<i>Tidak ada donasi pada periode yang dipilih.</i>", muted))
+    else:
+        header = ["No", "Tanggal", "Periode", "Orang Tua Asuh", "Metode", "Nominal"]
+        white_header = ParagraphStyle("wh", parent=body, textColor=colors.white, fontName="Helvetica-Bold")
+        rows = [[Paragraph(h, white_header) for h in header]]
+        for i, d in enumerate(docs, 1):
+            rows.append([
+                Paragraph(str(i), body),
+                Paragraph(d.get("donation_date", "-"), body),
+                Paragraph(fmt_month(d.get("donation_month")), body),
+                Paragraph(guardians.get(d["guardian_id"], {}).get("name", "-"), body),
+                Paragraph(d.get("method") or "-", muted),
+                Paragraph(f"<b>{fmt_idr(d.get('amount', 0))}</b>", body),
+            ])
+        rows.append([
+            Paragraph("", body), Paragraph("", body), Paragraph("", body),
+            Paragraph("<b>TOTAL</b>", body), Paragraph("", body),
+            Paragraph(f"<b><font color='#0F4A2A'>{fmt_idr(total)}</font></b>", body),
+        ])
+        tbl = Table(rows, colWidths=[0.9*cm, 2.4*cm, 2.5*cm, 5.5*cm, 2.4*cm, 3.7*cm], repeatRows=1)
+        tstyle = [
+            ("BACKGROUND", (0,0), (-1,0), GREEN),
+            ("LINEBELOW", (0,0), (-1,0), 1.5, GOLD),
+            ("BOX", (0,0), (-1,-1), 0.5, colors.HexColor("#DDE6DA")),
+            ("INNERGRID", (0,0), (-1,-1), 0.25, colors.HexColor("#EEF5EA")),
+            ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+            ("LEFTPADDING", (0,0), (-1,-1), 6), ("RIGHTPADDING", (0,0), (-1,-1), 6),
+            ("TOPPADDING", (0,0), (-1,-1), 6), ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+            ("BACKGROUND", (0,-1), (-1,-1), BG_SOFT),
+            ("LINEABOVE", (0,-1), (-1,-1), 0.8, GOLD),
+        ]
+        for r_idx in range(1, len(rows)-1):
+            if r_idx % 2 == 0:
+                tstyle.append(("BACKGROUND", (0, r_idx), (-1, r_idx), ROW_ALT))
+        tbl.setStyle(TableStyle(tstyle))
+        story.append(tbl)
+
+    story.append(Spacer(1, 18))
+    story.append(Paragraph("Jazakumullah khairan atas kebaikan seluruh Orang Tua Asuh. Barakallahu fiikum.", muted))
+
+    doc.build(story)
+    buf.seek(0)
+    suffix = month if month else datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    filename = f"Rekap_Donasi_{suffix}.pdf"
+    return StreamingResponse(
+        buf, media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @api.get("/donations")
 async def list_donations(guardian_id: Optional[str] = None, user=Depends(get_current_user)):
     q = {}
