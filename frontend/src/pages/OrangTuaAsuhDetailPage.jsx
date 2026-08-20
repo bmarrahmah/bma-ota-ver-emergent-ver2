@@ -5,7 +5,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import GuardianForm from "@/components/GuardianForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Copy, ExternalLink, Phone, MapPin, Mail, ArrowLeft, RefreshCcw, Edit3, MessageCircle } from "lucide-react";
+import { Copy, ExternalLink, Phone, MapPin, Mail, ArrowLeft, RefreshCcw, Edit3, MessageCircle, FileDown } from "lucide-react";
 import { toast } from "sonner";
 
 export default function OrangTuaAsuhDetailPage() {
@@ -53,6 +53,22 @@ export default function OrangTuaAsuhDetailPage() {
     window.open(wa, "_blank");
   };
 
+  const downloadProfilePdf = async () => {
+    try {
+      const t = localStorage.getItem("pota_token");
+      const res = await fetch(`${API}/guardians/${id}/pdf`, { headers: { Authorization: `Bearer ${t}` } });
+      if (!res.ok) throw new Error("Gagal mengunduh PDF");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Profil_OTA_${g.name.replace(/\s+/g, "_")}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Profil PDF diunduh");
+    } catch (e) { toast.error(e.message || "Gagal mengunduh"); }
+  };
+
   return (
     <div className="space-y-6" data-testid="page-ota-detail">
       <Link to="/admin/orang-tua-asuh" className="inline-flex items-center gap-1.5 text-sm text-[var(--pota-text-muted)] hover:text-[var(--pota-green)]">
@@ -80,6 +96,9 @@ export default function OrangTuaAsuhDetailPage() {
             </button>
             <button data-testid="btn-send-wa" onClick={sendWA} className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white px-3 py-2.5 rounded-xl text-sm font-semibold">
               <MessageCircle className="w-4 h-4" /> Kirim WhatsApp
+            </button>
+            <button data-testid="btn-profile-pdf" onClick={downloadProfilePdf} className="inline-flex items-center gap-2 text-[#33691E] border border-[#C5E1A5] bg-[#F1F8E9] hover:bg-[#DCEDC8] px-3 py-2.5 rounded-xl text-sm font-semibold">
+              <FileDown className="w-4 h-4" /> Cetak Profil PDF
             </button>
             <a data-testid="btn-open-portal" href={`/portal/${g.portal_token}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-[var(--pota-green)] text-[var(--pota-green)] px-3 py-2.5 rounded-xl text-sm font-semibold">
               <ExternalLink className="w-4 h-4" /> Buka Portal
