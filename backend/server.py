@@ -148,6 +148,24 @@ async def get_current_user(request: Request) -> dict:
     return user
 
 
+async def log_activity(user: dict, action: str, entity: str, entity_id: str = "", label: str = "", details: Optional[dict] = None):
+    try:
+        await db.activities.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": user.get("id"),
+            "user_name": user.get("name", ""),
+            "user_email": user.get("email", ""),
+            "action": action,
+            "entity": entity,
+            "entity_id": entity_id,
+            "label": label or "",
+            "details": details or {},
+            "created_at": now_iso(),
+        })
+    except Exception as e:
+        logger.warning(f"activity log failed: {e}")
+
+
 # -----------------------------
 # Models
 # -----------------------------
@@ -317,7 +335,29 @@ async def change_password(body: ChangePasswordIn, user=Depends(get_current_user)
     if len(body.new_password) < 6:
         raise HTTPException(400, "Kata sandi baru minimal 6 karakter")
     await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": hash_password(body.new_password)}})
+    await log_activity(user, "change_password", "user", user["id"], user.get("name", ""))
     return {"ok": True}
+
+
+@api.get("/activities")
+async def list_activities(
+    entity: Optional[str] = None,
+    action: Optional[str] = None,
+    user_id: Optional[str] = None,
+    limit: int = 200,
+    user=Depends(get_current_user),
+):
+    q = {}
+    if entity and entity != "all":
+        q["entity"] = entity
+    if action and action != "all":
+        q["action"] = action
+    if user_id and user_id != "all":
+        q["user_id"] = user_id
+    docs = await db.activities.find(q).sort("created_at", -1).limit(min(limit, 500)).to_list(500)
+    for d in docs:
+        strip_mongo(d)
+    return docs
 
 
 @api.get("/users")
@@ -349,6 +389,7 @@ async def create_user_endpoint(body: UserCreateIn, user=Depends(get_current_user
     await db.users.insert_one(doc)
     strip_mongo(doc)
     doc.pop("password_hash", None)
+    await log_activity(user, "create", "user", doc["id"], doc["name"])
     return doc
 
 
@@ -372,7 +413,10 @@ async def delete_user(uid: str, user=Depends(get_current_user)):
     count = await db.users.count_documents({})
     if count <= 1:
         raise HTTPException(400, "Minimal harus ada satu akun admin")
+    target = await db.users.find_one({"id": uid})
     await db.users.delete_one({"id": uid})
+    if target:
+        await log_activity(user, "delete", "user", uid, target.get("name", ""))
     return {"ok": True}
 
 
@@ -383,6 +427,8 @@ async def reset_user_password(uid: str, body: ResetPasswordIn, user=Depends(get_
     r = await db.users.update_one({"id": uid}, {"$set": {"password_hash": hash_password(body.new_password)}})
     if r.matched_count == 0:
         raise HTTPException(404, "Pengguna tidak ditemukan")
+    target = await db.users.find_one({"id": uid})
+    await log_activity(user, "reset", "user", uid, (target or {}).get("name", ""))
     return {"ok": True}
 
 
@@ -738,6 +784,7 @@ async def create_guardian(body: GuardianIn, user=Depends(get_current_user)):
     doc["created_at"] = now_iso()
     doc["updated_at"] = now_iso()
     await db.guardians.insert_one(doc)
+    await log_activity(user, "create", "guardian", doc["id"], doc["name"])
     return strip_mongo(doc)
 
 
@@ -757,15 +804,19 @@ async def update_guardian(gid: str, body: GuardianIn, user=Depends(get_current_u
     if r.matched_count == 0:
         raise HTTPException(404, "Tidak ditemukan")
     g = await db.guardians.find_one({"id": gid})
+    await log_activity(user, "update", "guardian", gid, g.get("name", ""))
     return strip_mongo(g)
 
 
 @api.delete("/guardians/{gid}")
 async def delete_guardian(gid: str, user=Depends(get_current_user)):
+    g = await db.guardians.find_one({"id": gid})
     await db.guardians.delete_one({"id": gid})
     await db.relations.delete_many({"guardian_id": gid})
     await db.donations.delete_many({"guardian_id": gid})
     await db.reports.delete_many({"guardian_id": gid})
+    if g:
+        await log_activity(user, "delete", "guardian", gid, g.get("name", ""))
     return {"ok": True}
 
 
@@ -773,6 +824,8 @@ async def delete_guardian(gid: str, user=Depends(get_current_user)):
 async def regenerate_token(gid: str, user=Depends(get_current_user)):
     token = secrets.token_urlsafe(24)
     await db.guardians.update_one({"id": gid}, {"$set": {"portal_token": token, "updated_at": now_iso()}})
+    g = await db.guardians.find_one({"id": gid})
+    await log_activity(user, "regenerate", "guardian", gid, (g or {}).get("name", ""))
     return {"portal_token": token}
 
 
@@ -805,6 +858,7 @@ async def create_child(body: ChildIn, user=Depends(get_current_user)):
     doc["created_at"] = now_iso()
     doc["updated_at"] = now_iso()
     await db.children.insert_one(doc)
+    await log_activity(user, "create", "child", doc["id"], doc["name"])
     return strip_mongo(doc)
 
 
@@ -832,14 +886,18 @@ async def update_child(cid: str, body: ChildIn, user=Depends(get_current_user)):
     if r.matched_count == 0:
         raise HTTPException(404, "Tidak ditemukan")
     c = await db.children.find_one({"id": cid})
+    await log_activity(user, "update", "child", cid, c.get("name", ""))
     return strip_mongo(c)
 
 
 @api.delete("/children/{cid}")
 async def delete_child(cid: str, user=Depends(get_current_user)):
+    c = await db.children.find_one({"id": cid})
     await db.children.delete_one({"id": cid})
     await db.relations.delete_many({"child_id": cid})
     await db.developments.delete_many({"child_id": cid})
+    if c:
+        await log_activity(user, "delete", "child", cid, c.get("name", ""))
     return {"ok": True}
 
 
@@ -906,12 +964,20 @@ async def create_relation(body: RelationIn, user=Depends(get_current_user)):
         "created_at": now_iso(),
     }
     await db.relations.insert_one(doc)
+    await log_activity(user, "create", "relation", doc["id"], f"{g['name']} ↔ {c['name']}")
     return strip_mongo(doc)
 
 
 @api.delete("/relations/{rid}")
 async def delete_relation(rid: str, user=Depends(get_current_user)):
+    r = await db.relations.find_one({"id": rid})
+    label = ""
+    if r:
+        g = await db.guardians.find_one({"id": r["guardian_id"]})
+        c = await db.children.find_one({"id": r["child_id"]})
+        label = f"{(g or {}).get('name','?')} ↔ {(c or {}).get('name','?')}"
     await db.relations.delete_one({"id": rid})
+    await log_activity(user, "delete", "relation", rid, label)
     return {"ok": True}
 
 
@@ -939,12 +1005,18 @@ async def create_donation(body: DonationIn, user=Depends(get_current_user)):
     doc["id"] = str(uuid.uuid4())
     doc["created_at"] = now_iso()
     await db.donations.insert_one(doc)
+    g = await db.guardians.find_one({"id": body.guardian_id})
+    await log_activity(user, "create", "donation", doc["id"], f"{(g or {}).get('name','-')} · Rp {int(body.amount):,}".replace(",", "."))
     return strip_mongo(doc)
 
 
 @api.delete("/donations/{did}")
 async def delete_donation(did: str, user=Depends(get_current_user)):
+    d = await db.donations.find_one({"id": did})
     await db.donations.delete_one({"id": did})
+    if d:
+        g = await db.guardians.find_one({"id": d.get("guardian_id")})
+        await log_activity(user, "delete", "donation", did, f"{(g or {}).get('name','-')} · Rp {int(d.get('amount',0)):,}".replace(",", "."))
     return {"ok": True}
 
 
@@ -979,12 +1051,18 @@ async def create_development(body: DevelopmentIn, user=Depends(get_current_user)
     doc["id"] = str(uuid.uuid4())
     doc["created_at"] = now_iso()
     await db.developments.insert_one(doc)
+    c = await db.children.find_one({"id": body.child_id})
+    await log_activity(user, "create", "development", doc["id"], f"{(c or {}).get('name','-')} · {body.category}")
     return strip_mongo(doc)
 
 
 @api.delete("/developments/{did}")
 async def delete_development(did: str, user=Depends(get_current_user)):
+    d = await db.developments.find_one({"id": did})
     await db.developments.delete_one({"id": did})
+    if d:
+        c = await db.children.find_one({"id": d.get("child_id")})
+        await log_activity(user, "delete", "development", did, f"{(c or {}).get('name','-')} · {d.get('category','')}")
     return {"ok": True}
 
 
@@ -1026,24 +1104,31 @@ async def list_reports(month: Optional[str] = None, status: Optional[str] = None
 
 @api.post("/reports")
 async def upsert_report(body: ReportIn, user=Depends(get_current_user)):
+    g = await db.guardians.find_one({"id": body.guardian_id})
     existing = await db.reports.find_one({"guardian_id": body.guardian_id, "month": body.month})
     if existing:
         await db.reports.update_one(
             {"id": existing["id"]},
             {"$set": {"summary": body.summary, "status": body.status, "updated_at": now_iso()}},
         )
+        await log_activity(user, "update", "report", existing["id"], f"{(g or {}).get('name','-')} · {body.month} · {body.status}")
         return strip_mongo(await db.reports.find_one({"id": existing["id"]}))
     doc = body.model_dump()
     doc["id"] = str(uuid.uuid4())
     doc["created_at"] = now_iso()
     doc["updated_at"] = now_iso()
     await db.reports.insert_one(doc)
+    await log_activity(user, "create", "report", doc["id"], f"{(g or {}).get('name','-')} · {body.month} · {body.status}")
     return strip_mongo(doc)
 
 
 @api.delete("/reports/{rid}")
 async def delete_report(rid: str, user=Depends(get_current_user)):
+    r = await db.reports.find_one({"id": rid})
     await db.reports.delete_one({"id": rid})
+    if r:
+        g = await db.guardians.find_one({"id": r.get("guardian_id")})
+        await log_activity(user, "delete", "report", rid, f"{(g or {}).get('name','-')} · {r.get('month','')}")
     return {"ok": True}
 
 
@@ -1069,6 +1154,7 @@ async def get_settings(user=Depends(get_current_user)):
 async def update_settings(body: SettingsIn, user=Depends(get_current_user)):
     await db.settings.update_one({"id": "main"}, {"$set": body.model_dump()}, upsert=True)
     s = await db.settings.find_one({"id": "main"})
+    await log_activity(user, "update", "settings", "main", body.institution_name)
     return strip_mongo(s)
 
 

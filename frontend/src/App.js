@@ -15,6 +15,7 @@ import DonasiPage from "@/pages/DonasiPage";
 import PerkembanganPage from "@/pages/PerkembanganPage";
 import LaporanPage from "@/pages/LaporanPage";
 import PengaturanPage from "@/pages/PengaturanPage";
+import AktivitasPage from "@/pages/AktivitasPage";
 import PortalPage from "@/pages/PortalPage";
 
 function Protected({ children }) {
@@ -43,6 +44,7 @@ function App() {
             <Route path="donasi" element={<DonasiPage />} />
             <Route path="perkembangan" element={<PerkembanganPage />} />
             <Route path="laporan" element={<LaporanPage />} />
+            <Route path="aktivitas" element={<AktivitasPage />} />
             <Route path="pengaturan" element={<PengaturanPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/admin" replace />} />

@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import api, { formatIDR, formatMonth, formatDate, errText } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, HandCoins, Trash2, Filter, X, Search } from "lucide-react";
+import { Plus, HandCoins, Trash2, Filter, X, Search, FileDown, BarChart3 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from "recharts";
 import { toast } from "sonner";
 
 function DonationForm({ guardians, onSaved }) {
@@ -97,6 +98,49 @@ export default function DonasiPage() {
   const resetFilters = () => { setQ(""); setFMonth("all"); setFGuardian("all"); setFMethod("all"); };
   const activeFilters = (q ? 1 : 0) + (fMonth !== "all" ? 1 : 0) + (fGuardian !== "all" ? 1 : 0) + (fMethod !== "all" ? 1 : 0);
 
+  const otaAgg = useMemo(() => {
+    const m = {};
+    filtered.forEach((d) => {
+      if (!m[d.guardian_id]) m[d.guardian_id] = { name: d.guardian_name, amount: 0, count: 0 };
+      m[d.guardian_id].amount += d.amount || 0;
+      m[d.guardian_id].count += 1;
+    });
+    return Object.values(m).sort((a, b) => b.amount - a.amount);
+  }, [filtered]);
+
+  const exportCSV = () => {
+    if (filtered.length === 0) return toast.error("Tidak ada data untuk diekspor");
+    const header = ["Tanggal", "Periode Bulan", "Orang Tua Asuh", "Metode", "Nominal (IDR)", "Catatan"];
+    const rows = filtered.map((d) => [
+      d.donation_date || "",
+      d.donation_month || "",
+      d.guardian_name || "",
+      d.method || "",
+      d.amount ?? 0,
+      (d.notes || "").replace(/[\r\n]/g, " "),
+    ]);
+    const csv = [header, ...rows]
+      .map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const suffix = fMonth !== "all" ? `_${fMonth}` : `_${new Date().toISOString().slice(0, 10)}`;
+    a.href = url;
+    a.download = `donasi${suffix}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast.success(`${filtered.length} donasi diekspor ke CSV`);
+  };
+
+  const compactIDR = (n) => {
+    if (!n) return "0";
+    if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}M`;
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}Jt`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(0)}rb`;
+    return String(n);
+  };
+
   return (
     <div className="space-y-6" data-testid="page-donasi">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -106,11 +150,16 @@ export default function DonasiPage() {
           <p className="text-sm text-[var(--pota-text-muted)] mt-1">Catatan donasi berdasarkan Orang Tua Asuh — tanpa keterkaitan langsung dengan anak tertentu.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <button data-testid="btn-add-donasi" className="inline-flex items-center gap-2 bg-[var(--pota-green)] text-white px-4 py-2.5 rounded-xl text-sm font-semibold">
-              <Plus className="w-4 h-4" /> Tambah Donasi
+          <div className="flex flex-wrap gap-2">
+            <button data-testid="btn-export-donasi" onClick={exportCSV} className="inline-flex items-center gap-2 border border-[var(--pota-border)] hover:border-[var(--pota-gold)] text-[var(--pota-green)] px-4 py-2.5 rounded-xl text-sm font-semibold bg-white">
+              <FileDown className="w-4 h-4" /> Ekspor CSV
             </button>
-          </DialogTrigger>
+            <DialogTrigger asChild>
+              <button data-testid="btn-add-donasi" className="inline-flex items-center gap-2 bg-[var(--pota-green)] text-white px-4 py-2.5 rounded-xl text-sm font-semibold">
+                <Plus className="w-4 h-4" /> Tambah Donasi
+              </button>
+            </DialogTrigger>
+          </div>
           <DialogContent className="max-w-md">
             <DialogHeader><DialogTitle className="font-display text-[var(--pota-green)]">Catat Donasi Baru</DialogTitle></DialogHeader>
             <DonationForm guardians={guardians} onSaved={()=>{ setOpen(false); load(); }} />
@@ -191,20 +240,56 @@ export default function DonasiPage() {
           {donations.length > 0 && <div className="text-sm text-[var(--pota-text-muted)] mt-1">Sesuaikan filter atau kata kunci pencarian.</div>}
         </div>
       ) : (
-        <div className="pota-card divide-y">
-          {filtered.map((d) => (
-            <div key={d.id} className="p-4 flex items-center justify-between" data-testid={`row-donasi-${d.id}`}>
+        <>
+          <div className="pota-card p-6">
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <div className="font-semibold text-[var(--pota-green)]">{d.guardian_name}</div>
-                <div className="text-xs text-[var(--pota-text-muted)]">{formatDate(d.donation_date)} · {formatMonth(d.donation_month)} · {d.method}</div>
+                <div className="text-[11px] tracking-[0.16em] uppercase text-[var(--pota-text-muted)] font-semibold inline-flex items-center gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Kontribusi Per Orang Tua Asuh</div>
+                <div className="font-display text-xl text-[var(--pota-green)] mt-1">
+                  {fMonth === "all" ? "Semua Periode" : formatMonth(fMonth)}
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="font-display text-lg text-[var(--pota-green)]">{formatIDR(d.amount)}</div>
-                <button onClick={()=>remove(d.id)} className="text-red-600"><Trash2 className="w-4 h-4" /></button>
+              <div className="text-right">
+                <div className="text-[11px] uppercase tracking-wider text-[var(--pota-text-muted)]">Total Filter</div>
+                <div className="font-display text-lg text-[var(--pota-green)]">{formatIDR(filteredTotal)}</div>
               </div>
             </div>
-          ))}
-        </div>
+            <div className="w-full" style={{ height: Math.max(180, otaAgg.length * 42) }}>
+              <ResponsiveContainer>
+                <BarChart data={otaAgg} layout="vertical" margin={{ top: 4, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8E4" />
+                  <XAxis type="number" stroke="#5C6F67" fontSize={11} tickLine={false} axisLine={false} tickFormatter={compactIDR} />
+                  <YAxis type="category" dataKey="name" stroke="#0B3D2E" fontSize={12} tickLine={false} axisLine={false} width={140} />
+                  <Tooltip
+                    contentStyle={{ background: "#fff", border: "1px solid #E2E8E4", borderRadius: 12, fontSize: 12 }}
+                    labelStyle={{ color: "#0B3D2E", fontWeight: 600 }}
+                    formatter={(v, _, p) => [formatIDR(v), `${p.payload.count} transaksi`]}
+                  />
+                  <Bar dataKey="amount" radius={[0, 6, 6, 0]}>
+                    {otaAgg.map((_, i) => (
+                      <Cell key={i} fill={i === 0 ? "#C9A227" : i === 1 ? "#123F32" : "#164A3A"} fillOpacity={i === 0 ? 1 : 0.85 - i * 0.05} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="pota-card divide-y">
+            {filtered.map((d) => (
+              <div key={d.id} className="p-4 flex items-center justify-between" data-testid={`row-donasi-${d.id}`}>
+                <div>
+                  <div className="font-semibold text-[var(--pota-green)]">{d.guardian_name}</div>
+                  <div className="text-xs text-[var(--pota-text-muted)]">{formatDate(d.donation_date)} · {formatMonth(d.donation_month)} · {d.method}</div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="font-display text-lg text-[var(--pota-green)]">{formatIDR(d.amount)}</div>
+                  <button onClick={()=>remove(d.id)} className="text-red-600"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

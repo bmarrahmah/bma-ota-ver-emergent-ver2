@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -51,12 +51,12 @@ html, body, #root {
   min-height: 100%;
   background: var(--pota-canvas);
   color: var(--pota-text);
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-family: 'Rubik', 'Poppins', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-.font-display { font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 600; letter-spacing: -0.01em; }
-.font-serif-luxe { font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 600; letter-spacing: -0.01em; }
+.font-display { font-family: 'Rubik', 'Poppins', system-ui, sans-serif; font-weight: 700; letter-spacing: -0.01em; }
+.font-serif-luxe { font-family: 'Rubik', 'Poppins', system-ui, sans-serif; font-weight: 700; letter-spacing: -0.01em; }
 
 .pota-sidebar {
   background: linear-gradient(180deg, #0B3D2E 0%, #07261D 100%);

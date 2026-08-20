@@ -1,7 +1,7 @@
 import React from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, Users, GraduationCap, Link2, HandCoins, Sparkles, ClipboardList, Settings, LogOut, Menu, X,
+  LayoutDashboard, Users, GraduationCap, Link2, HandCoins, Sparkles, ClipboardList, Settings, LogOut, Menu, Activity,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -14,6 +14,7 @@ const items = [
   { to: "/admin/donasi", icon: HandCoins, label: "Donasi" },
   { to: "/admin/perkembangan", icon: Sparkles, label: "Perkembangan" },
   { to: "/admin/laporan", icon: ClipboardList, label: "Laporan" },
+  { to: "/admin/aktivitas", icon: Activity, label: "Log Aktivitas" },
   { to: "/admin/pengaturan", icon: Settings, label: "Pengaturan" },
 ];
 
